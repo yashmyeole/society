@@ -22,6 +22,8 @@ interface Transaction {
   reason?: string;
   transactionType: "income" | "expense";
   chequeNumber?: string;
+  incomeType?: string;
+  expenseType?: string;
 }
 
 interface Member {
@@ -62,6 +64,7 @@ export default function LedgerPage() {
   >([]);
   const [loading, setLoading] = useState(true);
   const [selectedPerson, setSelectedPerson] = useState<string>("");
+  const [selectedTransactionHead, setSelectedTransactionHead] = useState<string>("");
   const [fetched, setFetched] = useState(false);
   const [personOpeningBalances, setPersonOpeningBalances] = useState<
     Map<string, number>
@@ -177,22 +180,57 @@ export default function LedgerPage() {
   };
 
   const handleFetchLedger = () => {
-    if (!selectedPerson) {
-      alert("Please select a person");
+    if (!selectedPerson && !selectedTransactionHead) {
+      alert("Please select either a person or a transaction head");
       return;
     }
 
-    // Filter transactions based on selected person
-    const filtered = allTransactions.filter((trans) => {
-      if (trans.transactionType === "income") {
-        return trans.memberName === selectedPerson;
-      } else {
-        return trans.reason === selectedPerson;
-      }
-    });
+    // Filter transactions based on selected person or transaction head
+    let filtered: Transaction[] = [];
+    
+    if (selectedTransactionHead) {
+      // Filter by transaction head
+      filtered = allTransactions.filter((trans) => {
+        if (trans.transactionType === "income") {
+          return trans.incomeType === selectedTransactionHead;
+        } else {
+          return trans.expenseType === selectedTransactionHead;
+        }
+      });
+    } else if (selectedPerson) {
+      // Filter by person (original logic)
+      filtered = allTransactions.filter((trans) => {
+        if (trans.transactionType === "income") {
+          return trans.memberName === selectedPerson;
+        } else {
+          return trans.reason === selectedPerson;
+        }
+      });
+    }
 
     setFilteredTransactions(filtered);
     setFetched(true);
+  };
+
+  const getUniqueTransactionHeads = (): Array<{ head: string; type: "income" | "expense" }> => {
+    const heads = new Set<string>();
+    const headWithType: Array<{ head: string; type: "income" | "expense" }> = [];
+    
+    allTransactions.forEach((trans) => {
+      if (trans.transactionType === "income" && trans.incomeType) {
+        if (!heads.has(`income-${trans.incomeType}`)) {
+          heads.add(`income-${trans.incomeType}`);
+          headWithType.push({ head: trans.incomeType, type: "income" });
+        }
+      } else if (trans.transactionType === "expense" && trans.expenseType) {
+        if (!heads.has(`expense-${trans.expenseType}`)) {
+          heads.add(`expense-${trans.expenseType}`);
+          headWithType.push({ head: trans.expenseType, type: "expense" });
+        }
+      }
+    });
+    
+    return headWithType.sort((a, b) => a.head.localeCompare(b.head));
   };
 
   const calculateTotalIncome = (): number => {
@@ -207,8 +245,12 @@ export default function LedgerPage() {
       .reduce((sum, t) => sum + t.amount, 0);
   };
 
-  const getOpeningBalance = (personName: string): number => {
-    return personOpeningBalances.get(personName) || 0;
+  const getOpeningBalance = (): number => {
+    if (selectedTransactionHead) {
+      // No opening balance for transaction head filtering
+      return 0;
+    }
+    return personOpeningBalances.get(selectedPerson) || 0;
   };
 
   const handleEditOpeningBalance = (personName: string) => {
@@ -489,7 +531,9 @@ export default function LedgerPage() {
       titleRow.getCell(1).alignment = center;
       sheet.mergeCells("A1:F1");
 
-      const subtitleRow = sheet.addRow([`LEDGER - ${selectedPerson}`]);
+      const subtitleRow = sheet.addRow([
+        `LEDGER - ${selectedTransactionHead || selectedPerson}`,
+      ]);
       subtitleRow.getCell(1).font = {
         bold: true,
         size: 12,
@@ -530,7 +574,7 @@ export default function LedgerPage() {
         c.font = { bold: true, color: { argb: "FFFFFFFF" } };
       });
 
-      let runningBalance = getOpeningBalance(selectedPerson);
+      let runningBalance = getOpeningBalance();
       const totalIncome = calculateTotalIncome();
       const totalExpense = calculateTotalExpense();
 
@@ -574,7 +618,7 @@ export default function LedgerPage() {
         "TOTAL",
         totalIncome,
         totalExpense,
-        getOpeningBalance(selectedPerson) + totalIncome - totalExpense,
+        getOpeningBalance() + totalIncome - totalExpense,
       ]);
 
       totalRow.getCell(4).numFmt = "0.00";
@@ -597,7 +641,7 @@ export default function LedgerPage() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `${society?.name}-${selectedPerson}-Ledger-${year?.year}.xlsx`;
+        link.download = `${society?.name}-${selectedTransactionHead || selectedPerson}-Ledger-${year?.year}.xlsx`;
         link.click();
         URL.revokeObjectURL(url);
       });
@@ -633,8 +677,7 @@ export default function LedgerPage() {
 
   const totalIncome = calculateTotalIncome();
   const totalExpense = calculateTotalExpense();
-  const netBalance =
-    getOpeningBalance(selectedPerson) + totalIncome - totalExpense;
+  const netBalance = getOpeningBalance() + totalIncome - totalExpense;
 
   return (
     <ProtectedRoute>
@@ -675,21 +718,62 @@ export default function LedgerPage() {
           {/* Filter and Fetch Section */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
-              Select Person
+              Filter By
             </h3>
             <div className="flex flex-col gap-4">
-              <select
-                value={selectedPerson}
-                onChange={(e) => setSelectedPerson(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">-- Select a person --</option>
-                {uniquePersons.map((person) => (
-                  <option key={person.id} value={person.name}>
-                    {person.name}
-                  </option>
-                ))}
-              </select>
+              {/* Transaction Head Filter */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Transaction Head (Income/Expense Type)
+                </label>
+                <select
+                  value={selectedTransactionHead}
+                  onChange={(e) => {
+                    setSelectedTransactionHead(e.target.value);
+                    setSelectedPerson(""); // Clear person selection when selecting head
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- Select transaction head --</option>
+                  {getUniqueTransactionHeads().map((headData) => (
+                    <option key={`${headData.type}-${headData.head}`} value={headData.head}>
+                      {headData.head} ({headData.type === "income" ? "Income" : "Expense"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* OR Divider */}
+              {getUniqueTransactionHeads().length > 0 && (
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 border-t border-gray-300"></div>
+                  <span className="text-sm text-gray-500">OR</span>
+                  <div className="flex-1 border-t border-gray-300"></div>
+                </div>
+              )}
+
+              {/* Person Filter */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Person
+                </label>
+                <select
+                  value={selectedPerson}
+                  onChange={(e) => {
+                    setSelectedPerson(e.target.value);
+                    setSelectedTransactionHead(""); // Clear transaction head when selecting person
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- Select a person --</option>
+                  {uniquePersons.map((person) => (
+                    <option key={person.id} value={person.name}>
+                      {person.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <button
                 onClick={handleFetchLedger}
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium transition-colors"
@@ -698,7 +782,7 @@ export default function LedgerPage() {
               </button>
 
               {/* Opening Balance Section */}
-              {selectedPerson && (
+              {selectedPerson && !selectedTransactionHead && (
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -734,7 +818,7 @@ export default function LedgerPage() {
                       ) : (
                         <div className="flex items-center justify-between">
                           <p className="text-2xl font-bold text-blue-600">
-                            ₹{getOpeningBalance(selectedPerson).toFixed(2)}
+                            ₹{getOpeningBalance().toFixed(2)}
                           </p>
                           <button
                             onClick={() =>
@@ -747,9 +831,9 @@ export default function LedgerPage() {
                         </div>
                       )}
                       <p className="text-xs text-gray-600 mt-2">
-                        {getOpeningBalance(selectedPerson) > 0
+                        {getOpeningBalance() > 0
                           ? "Positive: Amount owed to member"
-                          : getOpeningBalance(selectedPerson) < 0
+                          : getOpeningBalance() < 0
                             ? "Negative: Member owes amount"
                             : "Zero: No opening balance"}
                       </p>
@@ -786,14 +870,14 @@ export default function LedgerPage() {
                       </h3>
                       <p
                         className={`text-3xl font-bold ${
-                          getOpeningBalance(selectedPerson) > 0
+                          getOpeningBalance() > 0
                             ? "text-purple-600"
-                            : getOpeningBalance(selectedPerson) < 0
+                            : getOpeningBalance() < 0
                               ? "text-orange-600"
                               : "text-gray-600"
                         }`}
                       >
-                        ₹{getOpeningBalance(selectedPerson).toFixed(2)}
+                        ₹{getOpeningBalance().toFixed(2)}
                       </p>
                     </div>
                     <div className="bg-white rounded-lg shadow-md p-6">
@@ -833,7 +917,7 @@ export default function LedgerPage() {
                   >
                     <div className="bg-gray-50 border-b border-gray-200 p-4">
                       <h3 className="text-xl font-bold text-gray-900">
-                        Ledger - {selectedPerson}
+                        Ledger {selectedTransactionHead ? `- ${selectedTransactionHead}` : `- ${selectedPerson}`}
                       </h3>
                     </div>
                     <div className="overflow-x-auto">

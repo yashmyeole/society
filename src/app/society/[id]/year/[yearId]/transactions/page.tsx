@@ -175,7 +175,7 @@ export default function TransactionsPage() {
     if (incomeForm.incomeType === "Member Contribution") {
       const selectedMember = members.find((m) => m.id === incomeForm.memberId);
       if (!selectedMember) {
-        alert("Please select a member");
+        alert("Please select a member for Member Contribution");
         return;
       }
     }
@@ -189,12 +189,21 @@ export default function TransactionsPage() {
       let memberName = "";
       let memberId = "";
 
-      if (incomeForm.incomeType === "Member Contribution") {
-        const selectedMember = members.find(
-          (m) => m.id === incomeForm.memberId,
-        );
-        memberName = selectedMember?.name || "";
-        memberId = incomeForm.memberId;
+      if (
+        incomeForm.incomeType === "Member Contribution" ||
+        incomeForm.incomeType === "Conveyance Deed Contribution"
+      ) {
+        if (incomeForm.memberId) {
+          const selectedMember = members.find(
+            (m) => m.id === incomeForm.memberId,
+          );
+          memberName = selectedMember?.name || incomeForm.incomeType;
+          memberId = incomeForm.memberId;
+        } else {
+          // If member not selected, use income type as name
+          memberName = incomeForm.incomeType;
+          memberId = "";
+        }
       } else {
         // For other income types, use the income type as the name
         memberName = incomeForm.incomeType;
@@ -661,6 +670,7 @@ export default function TransactionsPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="Member Contribution">Member Contribution</option>
+                <option value="Conveyance Deed Contribution">Conveyance Deed Contribution</option>
                 <option value="Bank Interest">Bank Interest</option>
                 <option value="Transfer Fee">Transfer Fee</option>
                 <option value="Entrance Fee">Entrance Fee</option>
@@ -668,10 +678,11 @@ export default function TransactionsPage() {
               </select>
             </div>
 
-            {incomeForm.incomeType === "Member Contribution" && (
+            {(incomeForm.incomeType === "Member Contribution" ||
+              incomeForm.incomeType === "Conveyance Deed Contribution") && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Member *
+                  Member {incomeForm.incomeType === "Member Contribution" ? "*" : "(Optional)"}
                 </label>
                 <select
                   required
@@ -997,6 +1008,9 @@ export default function TransactionsPage() {
                   <option value="Member Contribution">
                     Member Contribution
                   </option>
+                  <option value="Conveyance Deed Contribution">
+                    Conveyance Deed Contribution
+                  </option>
                   <option value="Bank Interest">Bank Interest</option>
                   <option value="Transfer Fee">Transfer Fee</option>
                   <option value="Entrance Fee">Entrance Fee</option>
@@ -1045,10 +1059,12 @@ export default function TransactionsPage() {
             )}
 
             {editForm.transactionType === "income" &&
-              editForm.incomeType === "Member Contribution" && (
+              (editForm.incomeType === "Member Contribution" ||
+                editForm.incomeType === "Conveyance Deed Contribution") && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Member *
+                    Member {editForm.incomeType === "Member Contribution" ? "*" : "(Optional)"}
+
                   </label>
                   <select
                     value={editForm.memberId}
