@@ -304,7 +304,6 @@ export default function TransactionsPage() {
       setIsEditModalOpen(false);
       setEditingTransaction(null);
       fetchData();
-      alert("Transaction updated successfully!");
     } catch (error) {
       console.error("Error updating transaction:", error);
       alert("Failed to update transaction.");
@@ -327,7 +326,6 @@ export default function TransactionsPage() {
       setIsDeleteConfirmOpen(false);
       setDeletingTransactionId(null);
       fetchData();
-      alert("Transaction deleted successfully!");
     } catch (error) {
       console.error("Error deleting transaction:", error);
       alert("Failed to delete transaction.");

@@ -107,7 +107,6 @@ export default function HomePage() {
       });
 
       console.log("Society created successfully!");
-      alert("✅ Society created successfully!");
       setFormData({
         name: "",
         address: "",
@@ -165,7 +164,6 @@ export default function HomePage() {
         ownerName: formData.ownerName,
       });
 
-      alert("✅ Society updated successfully!");
       setIsEditModalOpen(false);
       setEditingSocietyId(null);
       setFormData({
@@ -198,7 +196,6 @@ export default function HomePage() {
       const societyRef = ref(db, `societies/${deletingSocietyId}`);
       await remove(societyRef);
 
-      alert("✅ Society deleted successfully!");
       setIsDeleteConfirmOpen(false);
       setDeletingSocietyId(null);
       fetchSocieties();

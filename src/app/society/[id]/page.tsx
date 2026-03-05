@@ -210,6 +210,16 @@ export default function SocietyPage() {
                     >
                       Cashbook
                     </button>
+                    <button
+                      onClick={() =>
+                        router.push(
+                          `/society/${societyId}/year/${fy.id}/ledger`,
+                        )
+                      }
+                      className="flex-1 px-3 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 transition-colors font-medium"
+                    >
+                      Ledger
+                    </button>
                   </div>
                 </div>
               ))}

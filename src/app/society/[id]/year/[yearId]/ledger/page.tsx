@@ -256,8 +256,6 @@ export default function LedgerPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
-      alert("✅ Ledger downloaded successfully!");
     } catch (error) {
       console.error("Download Error:", error);
       alert(`Error: ${(error as Error).message}`);

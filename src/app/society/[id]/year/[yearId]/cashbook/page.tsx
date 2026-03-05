@@ -9,6 +9,9 @@ import { useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import * as XLSX from "xlsx";
+import ExcelJS, { Alignment, Style, Borders } from "exceljs";
+import { saveAs } from "file-saver";
 
 interface Transaction {
   id: string;
@@ -26,7 +29,8 @@ interface FinancialYear {
   year: string;
   bankOpeningBalance?: number;
   cashOpeningBalance?: number;
-  closingBalance?: number;
+  bankClosingBalance?: number;
+  cashClosingBalance?: number;
 }
 
 interface Society {
@@ -44,10 +48,10 @@ export default function CashbookPage() {
   const [loading, setLoading] = useState(true);
   const [bankOpeningBalance, setBankOpeningBalance] = useState<number>(0);
   const [cashOpeningBalance, setCashOpeningBalance] = useState<number>(0);
-  const [closingBalance, setClosingBalance] = useState<number>(0);
+  const [bankClosingBalance, setBankClosingBalance] = useState<number>(0);
+  const [cashClosingBalance, setCashClosingBalance] = useState<number>(0);
   const [editingBankOpening, setEditingBankOpening] = useState(false);
   const [editingCashOpening, setEditingCashOpening] = useState(false);
-  const [editingClosing, setEditingClosing] = useState(false);
   const [savingBalance, setSavingBalance] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
@@ -55,6 +59,38 @@ export default function CashbookPage() {
   useEffect(() => {
     fetchData();
   }, [user, societyId, yearId]);
+
+  // Recalculate closing balances when opening balances or transactions change
+  useEffect(() => {
+    if (transactions.length > 0) {
+      const bankTrans = transactions.filter(
+        (t) => t.paymentMethod === "bank" || t.paymentMethod === "cheque",
+      );
+      const cashTrans = transactions.filter((t) => t.paymentMethod === "cash");
+
+      let bankBalance = bankOpeningBalance;
+      let cashBalance = cashOpeningBalance;
+
+      bankTrans.forEach((trans) => {
+        if (trans.transactionType === "income") {
+          bankBalance += trans.amount;
+        } else {
+          bankBalance -= trans.amount;
+        }
+      });
+
+      cashTrans.forEach((trans) => {
+        if (trans.transactionType === "income") {
+          cashBalance += trans.amount;
+        } else {
+          cashBalance -= trans.amount;
+        }
+      });
+
+      setBankClosingBalance(bankBalance);
+      setCashClosingBalance(cashBalance);
+    }
+  }, [bankOpeningBalance, cashOpeningBalance, transactions]);
 
   const fetchData = async () => {
     if (!user || !societyId || !yearId) return;
@@ -72,12 +108,14 @@ export default function CashbookPage() {
       // Fetch financial year
       const yearRef = ref(db, `financialYears/${yearId}`);
       const yearSnapshot = await get(yearRef);
+      let yearData: any = null;
       if (yearSnapshot.exists()) {
-        const yearData = yearSnapshot.val() as FinancialYear;
+        yearData = yearSnapshot.val() as FinancialYear;
         setYear(yearData);
         setBankOpeningBalance(yearData.bankOpeningBalance || 0);
         setCashOpeningBalance(yearData.cashOpeningBalance || 0);
-        setClosingBalance(yearData.closingBalance || 0);
+        setBankClosingBalance(yearData.bankClosingBalance || 0);
+        setCashClosingBalance(yearData.cashClosingBalance || 0);
       }
 
       // Fetch transactions
@@ -98,9 +136,12 @@ export default function CashbookPage() {
           },
         );
       }
-      // Sort by date ascending for cashbook
+      // Sort by date ascending
       transData.sort((a, b) => a.date - b.date);
       setTransactions(transData);
+
+      // Calculate closing balances
+      calculateAndSaveClosingBalances(transData, yearData);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -108,7 +149,42 @@ export default function CashbookPage() {
     }
   };
 
-  const handleSaveBalance = async (type: "bankOpening" | "cashOpening" | "closing") => {
+  const calculateAndSaveClosingBalances = async (
+    transData: Transaction[],
+    yearData: any,
+  ) => {
+    const bankTrans = transData.filter(
+      (t) => t.paymentMethod === "bank" || t.paymentMethod === "cheque",
+    );
+    const cashTrans = transData.filter((t) => t.paymentMethod === "cash");
+
+    const bankOpen = yearData?.bankOpeningBalance || 0;
+    const cashOpen = yearData?.cashOpeningBalance || 0;
+
+    let bankBalance = bankOpen;
+    let cashBalance = cashOpen;
+
+    bankTrans.forEach((trans) => {
+      if (trans.transactionType === "income") {
+        bankBalance += trans.amount;
+      } else {
+        bankBalance -= trans.amount;
+      }
+    });
+
+    cashTrans.forEach((trans) => {
+      if (trans.transactionType === "income") {
+        cashBalance += trans.amount;
+      } else {
+        cashBalance -= trans.amount;
+      }
+    });
+
+    setBankClosingBalance(bankBalance);
+    setCashClosingBalance(cashBalance);
+  };
+
+  const handleSaveBalance = async (type: "bankOpening" | "cashOpening") => {
     if (!user || !yearId) return;
 
     setSavingBalance(true);
@@ -117,19 +193,10 @@ export default function CashbookPage() {
       const yearSnapshot = await get(yearRef);
       const yearData = yearSnapshot.val();
 
-      let fieldName = "";
-      let fieldValue = 0;
-
-      if (type === "bankOpening") {
-        fieldName = "bankOpeningBalance";
-        fieldValue = bankOpeningBalance;
-      } else if (type === "cashOpening") {
-        fieldName = "cashOpeningBalance";
-        fieldValue = cashOpeningBalance;
-      } else {
-        fieldName = "closingBalance";
-        fieldValue = closingBalance;
-      }
+      const fieldName =
+        type === "bankOpening" ? "bankOpeningBalance" : "cashOpeningBalance";
+      const fieldValue =
+        type === "bankOpening" ? bankOpeningBalance : cashOpeningBalance;
 
       const updatedData = {
         ...yearData,
@@ -139,35 +206,35 @@ export default function CashbookPage() {
       await set(yearRef, updatedData);
       setYear(updatedData);
       alert(
-        `${
-          type === "bankOpening"
-            ? "Bank Opening"
-            : type === "cashOpening"
-            ? "Cash Opening"
-            : "Closing"
-        } balance saved successfully!`,
+        `${type === "bankOpening" ? "Bank" : "Cash"} Opening Balance saved!`,
       );
 
       if (type === "bankOpening") {
         setEditingBankOpening(false);
-      } else if (type === "cashOpening") {
-        setEditingCashOpening(false);
       } else {
-        setEditingClosing(false);
+        setEditingCashOpening(false);
       }
     } catch (error) {
       console.error("Error saving balance:", error);
-      alert("Failed to save balance. Please try again.");
+      alert("Failed to save balance.");
     } finally {
       setSavingBalance(false);
     }
   };
 
-  const calculateRunningBalance = (index: number): number => {
-    const totalOpening = bankOpeningBalance + cashOpeningBalance;
-    let balance = totalOpening;
+  const getBankTransactions = () =>
+    transactions.filter(
+      (t) => t.paymentMethod === "bank" || t.paymentMethod === "cheque",
+    );
+
+  const getCashTransactions = () =>
+    transactions.filter((t) => t.paymentMethod === "cash");
+
+  const calculateBankBalance = (index: number): number => {
+    const bankTrans = getBankTransactions();
+    let balance = bankOpeningBalance;
     for (let i = 0; i <= index; i++) {
-      const trans = transactions[i];
+      const trans = bankTrans[i];
       if (trans.transactionType === "income") {
         balance += trans.amount;
       } else {
@@ -177,29 +244,364 @@ export default function CashbookPage() {
     return balance;
   };
 
-  const totalIncome = transactions
-    .filter((t) => t.transactionType === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
+  const calculateCashBalance = (index: number): number => {
+    const cashTrans = getCashTransactions();
+    let balance = cashOpeningBalance;
+    for (let i = 0; i <= index; i++) {
+      const trans = cashTrans[i];
+      if (trans.transactionType === "income") {
+        balance += trans.amount;
+      } else {
+        balance -= trans.amount;
+      }
+    }
+    return balance;
+  };
 
-  const totalExpense = transactions
-    .filter((t) => t.transactionType === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
+  const getBankTotals = () => {
+    const bankTrans = getBankTransactions();
+    const income = bankTrans
+      .filter((t) => t.transactionType === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+    const expense = bankTrans
+      .filter((t) => t.transactionType === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+    return { income, expense };
+  };
 
-  const totalOpening = bankOpeningBalance + cashOpeningBalance;
-  const finalBalance = totalOpening + totalIncome - totalExpense;
+  const getCashTotals = () => {
+    const cashTrans = getCashTransactions();
+    const income = cashTrans
+      .filter((t) => t.transactionType === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+    const expense = cashTrans
+      .filter((t) => t.transactionType === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+    return { income, expense };
+  };
+
+  ("file-saver");
+
+  const handleDownloadXLSX = async () => {
+    try {
+      const bankTrans = getBankTransactions();
+      const cashTrans = getCashTransactions();
+      const bankTotals = getBankTotals();
+      const cashTotals = getCashTotals();
+
+      const workbook = new ExcelJS.Workbook();
+
+      const center: Partial<Alignment> = {
+        horizontal: "center",
+        vertical: "middle",
+      };
+
+      const titleStyle: Partial<Style> = {
+        font: { bold: true, size: 16 },
+        alignment: center,
+      };
+
+      const subtitleStyle: Partial<Style> = {
+        font: { bold: true, size: 12 },
+        alignment: center,
+      };
+
+      /*
+    BORDER STYLES
+    */
+
+      const headerBorder: Partial<Borders> = {
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" },
+      };
+
+      const verticalBorder: Partial<Borders> = {
+        left: { style: "thin" },
+        right: { style: "thin" },
+      };
+
+      const totalBorder: Partial<Borders> = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" },
+      };
+
+      const closingBorder: Partial<Borders> = {
+        bottom: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" },
+      };
+
+      /*
+    HELPER → EMPTY ROW WITH VERTICAL BORDERS
+    */
+
+      const addEmptyBorderRow = (sheet: ExcelJS.Worksheet) => {
+        const row = sheet.addRow(["", "", "", "", "", ""]);
+        row.eachCell((cell) => {
+          cell.border = verticalBorder;
+        });
+      };
+
+      /*
+    BUILD BANK / CASH SHEET
+    */
+
+      const buildSheet = (
+        name: string,
+        openingBalance: number,
+        transactions: any[],
+        totals: any,
+        closingBalance: number,
+      ) => {
+        const sheet = workbook.addWorksheet(name);
+
+        sheet.columns = [
+          { width: 12 },
+          { width: 14 },
+          { width: 30 },
+          { width: 14 },
+          { width: 14 },
+          { width: 16 },
+        ];
+
+        let r = 1;
+
+        sheet.mergeCells(`A${r}:F${r}`);
+        sheet.getCell(`A${r}`).value = society?.name;
+        sheet.getCell(`A${r}`).style = titleStyle;
+        r++;
+
+        sheet.mergeCells(`A${r}:F${r}`);
+        sheet.getCell(`A${r}`).value = name.toUpperCase();
+        sheet.getCell(`A${r}`).style = subtitleStyle;
+        r++;
+
+        sheet.mergeCells(`A${r}:F${r}`);
+        sheet.getCell(`A${r}`).value = `FINANCIAL YEAR: ${year?.year}`;
+        sheet.getCell(`A${r}`).style = subtitleStyle;
+
+        sheet.addRow([]);
+
+        /*
+      HEADER
+      */
+
+        const headerRow = sheet.addRow([
+          "Date",
+          "Receipt No",
+          "Details",
+          "Debit (₹)",
+          "Credit (₹)",
+          "Balance (₹)",
+        ]);
+
+        headerRow.eachCell((c) => {
+          c.border = headerBorder;
+          c.font = { bold: true };
+          c.alignment = center;
+        });
+
+        let balance = openingBalance;
+
+        /*
+      OPENING
+      */
+
+        const openRow = sheet.addRow([
+          "",
+          "",
+          `${name.includes("Bank") ? "Bank" : "Cash"} Opening Balance`,
+          "",
+          "",
+          openingBalance,
+        ]);
+
+        openRow.getCell(3).font = { bold: true };
+        openRow.getCell(6).numFmt = "0.00";
+        openRow.eachCell((c) => (c.border = verticalBorder));
+
+        addEmptyBorderRow(sheet);
+
+        /*
+      TRANSACTIONS
+      */
+
+        transactions.forEach((t) => {
+          if (t.transactionType === "income") balance += t.amount;
+          else balance -= t.amount;
+
+          const row = sheet.addRow([
+            new Date(t.date).toLocaleDateString("en-IN"),
+            t.receiptNumber || "",
+            t.transactionType === "income" ? t.memberName : t.reason || "",
+            t.transactionType === "expense" ? t.amount : "",
+            t.transactionType === "income" ? t.amount : "",
+            balance,
+          ]);
+
+          row.getCell(4).numFmt = "0.00";
+          row.getCell(5).numFmt = "0.00";
+          row.getCell(6).numFmt = "0.00";
+
+          row.eachCell((c) => (c.border = verticalBorder));
+        });
+
+        addEmptyBorderRow(sheet);
+
+        /*
+      TOTAL
+      */
+
+        const totalRow = sheet.addRow([
+          "",
+          "",
+          "Total",
+          totals.expense,
+          totals.income,
+          "",
+        ]);
+
+        totalRow.getCell(3).font = { bold: true };
+        totalRow.getCell(4).numFmt = "0.00";
+        totalRow.getCell(5).numFmt = "0.00";
+
+        totalRow.eachCell((c) => (c.border = totalBorder));
+
+        /*
+      CLOSING
+      */
+
+        const closingRow = sheet.addRow([
+          "",
+          "",
+          `${name.includes("Bank") ? "Bank" : "Cash"} Closing Balance`,
+          "",
+          "",
+          closingBalance,
+        ]);
+
+        closingRow.getCell(3).font = { bold: true };
+        closingRow.getCell(6).numFmt = "0.00";
+
+        closingRow.eachCell((c) => (c.border = closingBorder));
+      };
+
+      /*
+    BANK
+    */
+
+      buildSheet(
+        "Bank Transactions",
+        bankOpeningBalance,
+        bankTrans,
+        bankTotals,
+        bankClosingBalance,
+      );
+
+      /*
+    CASH
+    */
+
+      buildSheet(
+        "Cash Transactions",
+        cashOpeningBalance,
+        cashTrans,
+        cashTotals,
+        cashClosingBalance,
+      );
+
+      /*
+    SUMMARY SHEET
+    */
+
+      const summary = workbook.addWorksheet("Summary");
+
+      summary.columns = [{ width: 30 }, { width: 18 }];
+
+      summary.mergeCells("A1:B1");
+      summary.getCell("A1").value = society?.name;
+      summary.getCell("A1").style = titleStyle;
+
+      summary.mergeCells("A2:B2");
+      summary.getCell("A2").value = "SUMMARY";
+      summary.getCell("A2").style = subtitleStyle;
+
+      summary.mergeCells("A3:B3");
+      summary.getCell("A3").value = `FINANCIAL YEAR: ${year?.year}`;
+      summary.getCell("A3").style = subtitleStyle;
+
+      summary.addRow([]);
+
+      const summaryBorder: Partial<Borders> = {
+        left: { style: "thin" },
+        right: { style: "thin" },
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+      };
+
+      const addSummary = (title: string, data: any) => {
+        const titleRow = summary.addRow([title, ""]);
+        titleRow.getCell(1).font = { bold: true };
+
+        const rows = [
+          ["Opening Balance", data.open],
+          ["Income", data.income],
+          ["Expense", data.expense],
+          ["Closing Balance", data.close],
+        ];
+
+        rows.forEach((r) => {
+          const row = summary.addRow(r);
+          row.getCell(2).numFmt = "0.00";
+          row.eachCell((c) => (c.border = summaryBorder));
+        });
+
+        summary.addRow([]);
+      };
+
+      addSummary("Bank Summary", {
+        open: bankOpeningBalance,
+        income: bankTotals.income,
+        expense: bankTotals.expense,
+        close: bankClosingBalance,
+      });
+
+      addSummary("Cash Summary", {
+        open: cashOpeningBalance,
+        income: cashTotals.income,
+        expense: cashTotals.expense,
+        close: cashClosingBalance,
+      });
+
+      addSummary("Total Summary", {
+        open: bankOpeningBalance + cashOpeningBalance,
+        income: bankTotals.income + cashTotals.income,
+        expense: bankTotals.expense + cashTotals.expense,
+        close: bankClosingBalance + cashClosingBalance,
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+
+      saveAs(
+        new Blob([buffer]),
+        `${society?.name}-Cashbook-${year?.year}.xlsx`,
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const handleDownloadPDF = async () => {
     const element = document.getElementById("cashbook-content");
     if (!element) {
-      alert("Cashbook content not found. Please refresh and try again.");
+      alert("Cashbook content not found.");
       return;
     }
 
     try {
-      // Show loading state
-      alert("Generating PDF... Please wait.");
-
-      // Simple approach: capture the element directly
       const canvas = await html2canvas(element, {
         allowTaint: true,
         useCORS: true,
@@ -212,23 +614,18 @@ export default function CashbookPage() {
         orientation: "landscape",
         unit: "mm",
         format: "a4",
-        compress: true,
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      // Calculate dimensions
-      const imgWidth = pdfWidth - 20; // 10mm margin on each side
+      const imgWidth = pdfWidth - 20;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
-      let position = 10; // Top margin
+      let position = 10;
 
-      // Add first page
       pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight - 20; // Account for margins
+      heightLeft -= pdfHeight - 20;
 
-      // Add additional pages if needed
       while (heightLeft > 0) {
         position = heightLeft - imgHeight + 10;
         pdf.addPage();
@@ -236,185 +633,60 @@ export default function CashbookPage() {
         heightLeft -= pdfHeight - 20;
       }
 
-      // Generate filename
       const filename = `${society?.name || "Cashbook"}-${year?.year || "Report"}.pdf`;
       pdf.save(filename);
-
-      alert("✅ PDF downloaded successfully!");
     } catch (error) {
-      console.error("PDF Generation Error:", error);
-      alert(
-        `Error: ${(error as Error).message}\n\nTry refreshing the page and try again.`,
-      );
-    }
-  };
-
-  const handleDownloadCSV = () => {
-    try {
-      // Create CSV header
-      const csvHeader = [
-        [`${society?.name} - CASH BOOK`, "", "", "", "", ""],
-        [`FINANCIAL YEAR : ${year?.year}`, "", "", "", "", ""],
-        [],
-        ["DATE", "RECEIPT NO", "DETAILS", "DEBIT", "CREDIT", "BALANCE"],
-      ];
-
-      // Create data rows
-      const csvData: string[][] = [];
-
-      // Add bank opening balance row
-      csvData.push([
-        "",
-        "",
-        "BANK OPENING BALANCE",
-        "",
-        bankOpeningBalance.toFixed(2),
-        bankOpeningBalance.toFixed(2),
-      ]);
-
-      // Add cash opening balance row
-      csvData.push([
-        "",
-        "",
-        "CASH OPENING BALANCE",
-        "",
-        cashOpeningBalance.toFixed(2),
-        (bankOpeningBalance + cashOpeningBalance).toFixed(2),
-      ]);
-
-      // Add transaction rows
-      transactions.forEach((transaction, index) => {
-        const runningBalance = calculateRunningBalance(index);
-        csvData.push([
-          new Date(transaction.date).toLocaleDateString("en-IN", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          }),
-          transaction.receiptNumber || "",
-          transaction.transactionType === "income"
-            ? transaction.memberName
-            : transaction.reason || "",
-          transaction.transactionType === "expense"
-            ? transaction.amount.toFixed(2)
-            : "",
-          transaction.transactionType === "income"
-            ? transaction.amount.toFixed(2)
-            : "",
-          runningBalance.toFixed(2),
-        ]);
-      });
-
-      // Add total row
-      if (transactions.length > 0) {
-        csvData.push([
-          "",
-          "",
-          "TOTAL",
-          totalExpense.toFixed(2),
-          totalIncome.toFixed(2),
-          finalBalance.toFixed(2),
-        ]);
-
-        // Add closing balance row
-        csvData.push([
-          "",
-          "",
-          "CLOSING BALANCE (CALCULATED)",
-          "",
-          "",
-          finalBalance.toFixed(2),
-        ]);
-      }
-
-      // Combine header and data
-      const allRows = [...csvHeader, ...csvData];
-
-      // Convert to CSV string
-      const csvContent = allRows
-        .map((row) => row.map((cell) => `"${cell}"`).join(","))
-        .join("\n");
-
-      // Create blob and download
-      const blob = new Blob([csvContent], {
-        type: "text/csv;charset=utf-8;",
-      });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-
-      const filename = `${society?.name || "Cashbook"}-${year?.year || "Report"}.csv`;
-      link.setAttribute("href", url);
-      link.setAttribute("download", filename);
-      link.style.visibility = "hidden";
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      alert("✅ Cashbook CSV downloaded successfully!");
-    } catch (error) {
-      console.error("CSV Generation Error:", error);
-      alert(`Error: ${(error as Error).message}\n\nTry again later.`);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      router.push("/login");
-    } catch (error) {
-      console.error("Error logging out:", error);
+      console.error("PDF Error:", error);
+      alert(`Error: ${(error as Error).message}`);
     }
   };
 
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="flex justify-center items-center h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+          <p className="text-lg font-semibold">Loading...</p>
         </div>
       </ProtectedRoute>
     );
   }
 
+  const bankTrans = getBankTransactions();
+  const cashTrans = getCashTransactions();
+  const bankTotals = getBankTotals();
+  const cashTotals = getCashTotals();
+
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-start">
-            <div>
+      <div className="min-h-screen bg-gray-100">
+        <nav className="bg-blue-600 text-white p-4 shadow-md">
+          <div className="container mx-auto flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Cashbook - {society?.name}</h1>
+            <div className="flex gap-4">
               <button
-                onClick={() =>
-                  router.push(
-                    `/society/${societyId}/year/${yearId}/transactions`,
-                  )
-                }
-                className="text-blue-600 hover:text-blue-700 mb-2"
+                onClick={() => router.back()}
+                className="px-4 py-2 bg-blue-500 rounded-md hover:bg-blue-700 transition-colors"
               >
-                ← Back to Transactions
+                ← Back
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {society?.name} - Cashbook FY {year?.year}
-              </h1>
-              <p className="text-gray-600">{society?.address}</p>
+              <button
+                onClick={async () => {
+                  await signOut(auth);
+                  router.push("/");
+                }}
+                className="px-4 py-2 bg-red-600 rounded-md hover:bg-red-700 transition-colors"
+              >
+                Logout
+              </button>
             </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Logout
-            </button>
           </div>
-        </header>
+        </nav>
 
-        {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Balance Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {/* Bank Opening Balance */}
+        <main className="container mx-auto px-4 py-8 max-w-7xl">
+          {/* Opening Balances */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">
+              <h2 className="text-lg font-bold mb-4 text-gray-800">
                 Bank Opening Balance
               </h2>
               {editingBankOpening ? (
@@ -425,23 +697,19 @@ export default function CashbookPage() {
                     onChange={(e) =>
                       setBankOpeningBalance(parseFloat(e.target.value) || 0)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter bank opening balance"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleSaveBalance("bankOpening")}
                       disabled={savingBalance}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                     >
                       {savingBalance ? "Saving..." : "Save"}
                     </button>
                     <button
-                      onClick={() => {
-                        setEditingBankOpening(false);
-                        setBankOpeningBalance(year?.bankOpeningBalance || 0);
-                      }}
-                      className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-medium transition-colors"
+                      onClick={() => setEditingBankOpening(false)}
+                      className="flex-1 px-4 py-2 bg-gray-300 rounded-md"
                     >
                       Cancel
                     </button>
@@ -454,7 +722,7 @@ export default function CashbookPage() {
                   </p>
                   <button
                     onClick={() => setEditingBankOpening(true)}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium transition-colors"
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                   >
                     Edit
                   </button>
@@ -462,9 +730,8 @@ export default function CashbookPage() {
               )}
             </div>
 
-            {/* Cash Opening Balance */}
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">
+              <h2 className="text-lg font-bold mb-4 text-gray-800">
                 Cash Opening Balance
               </h2>
               {editingCashOpening ? (
@@ -475,23 +742,19 @@ export default function CashbookPage() {
                     onChange={(e) =>
                       setCashOpeningBalance(parseFloat(e.target.value) || 0)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500"
-                    placeholder="Enter cash opening balance"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleSaveBalance("cashOpening")}
                       disabled={savingBalance}
-                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 font-medium transition-colors"
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                     >
                       {savingBalance ? "Saving..." : "Save"}
                     </button>
                     <button
-                      onClick={() => {
-                        setEditingCashOpening(false);
-                        setCashOpeningBalance(year?.cashOpeningBalance || 0);
-                      }}
-                      className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-medium transition-colors"
+                      onClick={() => setEditingCashOpening(false)}
+                      className="flex-1 px-4 py-2 bg-gray-300 rounded-md"
                     >
                       Cancel
                     </button>
@@ -504,603 +767,339 @@ export default function CashbookPage() {
                   </p>
                   <button
                     onClick={() => setEditingCashOpening(true)}
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium transition-colors"
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                   >
                     Edit
                   </button>
                 </div>
               )}
             </div>
-
-            {/* Closing Balance */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">
-                Closing Balance (Auto-Calculated)
-              </h2>
-              <div className="space-y-4">
-                <p className="text-3xl font-bold text-blue-600">
-                  ₹{finalBalance.toFixed(2)}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Calculated as: Opening Balance + Income - Expenses
-                </p>
-                <p className="text-sm text-gray-500">
-                  = ₹{totalOpening.toFixed(2)} + ₹{totalIncome.toFixed(2)} - ₹
-                  {totalExpense.toFixed(2)}
-                </p>
-              </div>
-            </div>
           </div>
 
-          {/* Cashbook Table */}
-          <div
-            id="cashbook-content"
-            style={{
-              pageBreakInside: "avoid",
-              color: "#000000",
-              backgroundColor: "#ffffff",
-              borderRadius: "8px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                padding: "24px 16px",
-                borderBottom: "1px solid #e5e7eb",
-              }}
-            >
-              <h2
-                style={{
-                  fontSize: "20px",
-                  fontWeight: "700",
-                  color: "#000000",
-                  margin: "0 0 8px 0",
-                }}
-              >
-                Cash Book - {society?.name}
+          {/* Cashbook Content for PDF */}
+          <div id="cashbook-content">
+            {/* Bank Section */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-2xl font-bold text-blue-700 mb-6">
+                Bank Transactions
               </h2>
-              <p
-                style={{
-                  color: "#666666",
-                  fontSize: "14px",
-                  margin: "8px 0 0 0",
-                }}
-              >
-                FY {year?.year}
-              </p>
-            </div>
 
-            <div style={{ overflowX: "auto" }}>
-              <table
-                style={{
-                  width: "100%",
-                  fontSize: "14px",
-                  borderCollapse: "collapse",
-                }}
-              >
-                <thead style={{ backgroundColor: "#f3f4f6" }}>
-                  <tr>
-                    <th
-                      style={{
-                        borderBottom: "2px solid #d1d5db",
-                        padding: "12px",
-                        textAlign: "left",
-                        fontWeight: "600",
-                        color: "#000000",
-                      }}
-                    >
-                      Date
-                    </th>
-                    <th
-                      style={{
-                        borderBottom: "2px solid #d1d5db",
-                        padding: "12px",
-                        textAlign: "left",
-                        fontWeight: "600",
-                        color: "#000000",
-                      }}
-                    >
-                      Receipt No
-                    </th>
-                    <th
-                      style={{
-                        borderBottom: "2px solid #d1d5db",
-                        padding: "12px",
-                        textAlign: "left",
-                        fontWeight: "600",
-                        color: "#000000",
-                      }}
-                    >
-                      Details
-                    </th>
-                    <th
-                      style={{
-                        borderBottom: "2px solid #d1d5db",
-                        padding: "12px",
-                        textAlign: "center",
-                        fontWeight: "600",
-                        color: "#000000",
-                      }}
-                    >
-                      Debit (₹)
-                    </th>
-                    <th
-                      style={{
-                        borderBottom: "2px solid #d1d5db",
-                        padding: "12px",
-                        textAlign: "center",
-                        fontWeight: "600",
-                        color: "#000000",
-                      }}
-                    >
-                      Credit (₹)
-                    </th>
-                    <th
-                      style={{
-                        borderBottom: "2px solid #d1d5db",
-                        padding: "12px",
-                        textAlign: "center",
-                        fontWeight: "600",
-                        color: "#000000",
-                      }}
-                    >
-                      Balance (₹)
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Bank Opening Balance Row */}
-                  <tr
-                    style={{
-                      backgroundColor: "#eff6ff",
-                      borderBottom: "1px solid #e5e7eb",
-                    }}
-                  >
-                    <td
-                      colSpan={5}
-                      style={{
-                        padding: "12px",
-                        fontWeight: "600",
-                        color: "#000000",
-                      }}
-                    >
-                      Bank Opening Balance
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px",
-                        textAlign: "center",
-                        fontWeight: "600",
-                        color: "#2563eb",
-                      }}
-                    >
-                      ₹{bankOpeningBalance.toFixed(2)}
-                    </td>
-                  </tr>
-
-                  {/* Cash Opening Balance Row */}
-                  <tr
-                    style={{
-                      backgroundColor: "#f0fdf4",
-                      borderBottom: "1px solid #e5e7eb",
-                    }}
-                  >
-                    <td
-                      colSpan={5}
-                      style={{
-                        padding: "12px",
-                        fontWeight: "600",
-                        color: "#000000",
-                      }}
-                    >
-                      Cash Opening Balance
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px",
-                        textAlign: "center",
-                        fontWeight: "600",
-                        color: "#16a34a",
-                      }}
-                    >
-                      ₹{cashOpeningBalance.toFixed(2)}
-                    </td>
-                  </tr>
-
-                  {/* Transaction Rows */}
-                  {transactions.map((transaction, index) => (
-                    <tr
-                      key={transaction.id}
-                      style={{ borderBottom: "1px solid #e5e7eb" }}
-                    >
-                      <td style={{ padding: "12px", color: "#000000" }}>
-                        {new Date(transaction.date).toLocaleDateString(
-                          "en-IN",
-                          {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          },
-                        )}
-                      </td>
-                      <td style={{ padding: "12px", color: "#000000" }}>
-                        {transaction.receiptNumber || "-"}
-                      </td>
-                      <td style={{ padding: "12px", color: "#000000" }}>
-                        {transaction.transactionType === "income"
-                          ? transaction.memberName
-                          : transaction.reason}
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px",
-                          textAlign: "center",
-                          fontWeight: "600",
-                          color: "#dc2626",
-                        }}
-                      >
-                        {transaction.transactionType === "expense"
-                          ? `₹${transaction.amount.toFixed(2)}`
-                          : "-"}
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px",
-                          textAlign: "center",
-                          fontWeight: "600",
-                          color: "#16a34a",
-                        }}
-                      >
-                        {transaction.transactionType === "income"
-                          ? `₹${transaction.amount.toFixed(2)}`
-                          : "-"}
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px",
-                          textAlign: "center",
-                          fontWeight: "600",
-                          color: "#2563eb",
-                        }}
-                      >
-                        ₹{calculateRunningBalance(index).toFixed(2)}
-                      </td>
+              <div className="overflow-x-auto mb-6">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-blue-100">
+                      <th className="border border-gray-300 px-4 py-2 text-left font-bold text-gray-800">
+                        Date
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-left font-bold text-gray-800">
+                        Receipt No
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-left font-bold text-gray-800">
+                        Details
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-right font-bold text-gray-800">
+                        Debit (₹)
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-right font-bold text-gray-800">
+                        Credit (₹)
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-right font-bold text-gray-800">
+                        Balance (₹)
+                      </th>
                     </tr>
-                  ))}
-
-                  {/* Total Rows */}
-                  {transactions.length > 0 && (
-                    <>
-                      <tr
-                        style={{
-                          backgroundColor: "#f3f4f6",
-                          borderBottom: "2px solid #9ca3af",
-                          fontWeight: "700",
-                        }}
-                      >
-                        <td
-                          colSpan={3}
-                          style={{
-                            padding: "12px",
-                            color: "#000000",
-                            fontWeight: "700",
-                          }}
-                        >
-                          Total
-                        </td>
-                        <td
-                          style={{
-                            padding: "12px",
-                            textAlign: "center",
-                            fontWeight: "700",
-                            color: "#dc2626",
-                          }}
-                        >
-                          ₹{totalExpense.toFixed(2)}
-                        </td>
-                        <td
-                          style={{
-                            padding: "12px",
-                            textAlign: "center",
-                            fontWeight: "700",
-                            color: "#16a34a",
-                          }}
-                        >
-                          ₹{totalIncome.toFixed(2)}
-                        </td>
-                        <td
-                          style={{
-                            padding: "12px",
-                            textAlign: "center",
-                            fontWeight: "700",
-                            color: "#2563eb",
-                          }}
-                        >
-                          ₹{finalBalance.toFixed(2)}
-                        </td>
-                      </tr>
-                    </>
-                  )}
-
-                  {/* Closing Balance Row */}
-                  {transactions.length > 0 && (
-                    <tr
-                      style={{
-                        backgroundColor: "#eff6ff",
-                        borderBottom: "1px solid #e5e7eb",
-                      }}
-                    >
+                  </thead>
+                  <tbody>
+                    <tr className="bg-blue-50">
                       <td
                         colSpan={5}
-                        style={{
-                          padding: "12px",
-                          fontWeight: "600",
-                          color: "#000000",
-                        }}
+                        className="border border-gray-300 px-4 py-2 font-bold text-gray-800"
                       >
-                        Closing Balance (Calculated)
+                        Opening Balance
                       </td>
-                      <td
-                        style={{
-                          padding: "12px",
-                          textAlign: "center",
-                          fontWeight: "700",
-                          fontSize: "18px",
-                          color: "#2563eb",
-                        }}
-                      >
-                        ₹{finalBalance.toFixed(2)}
+                      <td className="border border-gray-300 px-4 py-2 text-right font-bold text-blue-600">
+                        ₹{bankOpeningBalance.toFixed(2)}
                       </td>
                     </tr>
-                  )}
-
-                  {/* Empty State */}
-                  {transactions.length === 0 && (
-                    <tr>
+                    {bankTrans.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="border border-gray-300 px-4 py-2 text-center text-gray-700"
+                        >
+                          No bank transactions
+                        </td>
+                      </tr>
+                    ) : (
+                      bankTrans.map((trans, index) => (
+                        <tr key={trans.id} className="hover:bg-gray-50">
+                          <td className="border border-gray-300 px-4 py-2 text-gray-800">
+                            {new Date(trans.date).toLocaleDateString("en-IN")}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-gray-800">
+                            {trans.receiptNumber || "-"}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-gray-800">
+                            {trans.transactionType === "income"
+                              ? trans.memberName
+                              : trans.reason}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-right text-red-600 font-bold">
+                            {trans.transactionType === "expense"
+                              ? `₹${trans.amount.toFixed(2)}`
+                              : "-"}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-right text-green-600 font-bold">
+                            {trans.transactionType === "income"
+                              ? `₹${trans.amount.toFixed(2)}`
+                              : "-"}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-right font-bold text-blue-600">
+                            ₹{calculateBankBalance(index).toFixed(2)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                    {bankTrans.length > 0 && (
+                      <>
+                        <tr className="bg-gray-100 font-bold">
+                          <td
+                            colSpan={3}
+                            className="border border-gray-300 px-4 py-2 text-gray-800"
+                          >
+                            Total
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-right text-red-600">
+                            ₹{bankTotals.expense.toFixed(2)}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-right text-green-600">
+                            ₹{bankTotals.income.toFixed(2)}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-right text-blue-600">
+                            ₹{bankClosingBalance.toFixed(2)}
+                          </td>
+                        </tr>
+                      </>
+                    )}
+                    <tr className="bg-blue-50 font-bold">
                       <td
-                        colSpan={6}
-                        style={{
-                          padding: "32px",
-                          textAlign: "center",
-                          color: "#6b7280",
-                        }}
+                        colSpan={5}
+                        className="border border-gray-300 px-4 py-2 text-gray-800"
                       >
-                        No transactions found
+                        Closing Balance
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-right text-blue-600">
+                        ₹{bankClosingBalance.toFixed(2)}
                       </td>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            {/* Summary Section */}
-            <div
-              style={{
-                backgroundColor: "#f9fafb",
-                borderTop: "1px solid #e5e7eb",
-                padding: "16px 24px",
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-                gap: "16px",
-              }}
-            >
-              <div>
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "#4b5563",
-                    margin: "0 0 8px 0",
-                  }}
-                >
-                  Bank Opening Balance
+            {/* Cash Section */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-2xl font-bold text-green-800 mb-6">
+                Cash Transactions
+              </h2>
+
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-green-100">
+                      <th className="border border-gray-300 px-4 py-2 text-left font-bold text-gray-800">
+                        Date
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-left font-bold text-gray-800">
+                        Receipt No
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-left font-bold text-gray-800">
+                        Details
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-right font-bold text-gray-800">
+                        Debit (₹)
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-right font-bold text-gray-800">
+                        Credit (₹)
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-right font-bold text-gray-800">
+                        Balance (₹)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="bg-green-50">
+                      <td
+                        colSpan={5}
+                        className="border border-gray-300 px-4 py-2 font-bold text-gray-800"
+                      >
+                        Opening Balance
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-right font-bold text-green-600">
+                        ₹{cashOpeningBalance.toFixed(2)}
+                      </td>
+                    </tr>
+                    {cashTrans.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="border border-gray-300 px-4 py-2 text-center text-gray-700"
+                        >
+                          No cash transactions
+                        </td>
+                      </tr>
+                    ) : (
+                      cashTrans.map((trans, index) => (
+                        <tr key={trans.id} className="hover:bg-gray-50">
+                          <td className="border border-gray-300 px-4 py-2 text-gray-800">
+                            {new Date(trans.date).toLocaleDateString("en-IN")}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-gray-800">
+                            {trans.receiptNumber || "-"}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-gray-800">
+                            {trans.transactionType === "income"
+                              ? trans.memberName
+                              : trans.reason}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-right text-red-600 font-bold">
+                            {trans.transactionType === "expense"
+                              ? `₹${trans.amount.toFixed(2)}`
+                              : "-"}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-right text-green-600 font-bold">
+                            {trans.transactionType === "income"
+                              ? `₹${trans.amount.toFixed(2)}`
+                              : "-"}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-right font-bold text-green-600">
+                            ₹{calculateCashBalance(index).toFixed(2)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                    {cashTrans.length > 0 && (
+                      <>
+                        <tr className="bg-gray-100 font-bold">
+                          <td
+                            colSpan={3}
+                            className="border border-gray-300 px-4 py-2 text-gray-800"
+                          >
+                            Total
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-right text-red-600">
+                            ₹{cashTotals.expense.toFixed(2)}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-right text-green-600">
+                            ₹{cashTotals.income.toFixed(2)}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-right text-green-600">
+                            ₹{cashClosingBalance.toFixed(2)}
+                          </td>
+                        </tr>
+                      </>
+                    )}
+                    <tr className="bg-green-50 font-bold">
+                      <td
+                        colSpan={5}
+                        className="border border-gray-300 px-4 py-2 text-gray-800"
+                      >
+                        Closing Balance
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-right text-green-600">
+                        ₹{cashClosingBalance.toFixed(2)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            <div className="bg-blue-50 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-blue-800 mb-4">
+                Bank Summary
+              </h3>
+              <div className="space-y-2 text-sm">
+                <p className="text-gray-800">
+                  Opening: ₹{bankOpeningBalance.toFixed(2)}
                 </p>
-                <p
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: "700",
-                    color: "#2563eb",
-                    margin: "0",
-                  }}
-                >
-                  ₹{bankOpeningBalance.toFixed(2)}
+                <p className="text-gray-800">
+                  Income: ₹{bankTotals.income.toFixed(2)}
+                </p>
+                <p className="text-gray-800">
+                  Expense: ₹{bankTotals.expense.toFixed(2)}
+                </p>
+                <p className="font-bold text-base text-blue-700">
+                  Closing: ₹{bankClosingBalance.toFixed(2)}
                 </p>
               </div>
-              <div>
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "#4b5563",
-                    margin: "0 0 8px 0",
-                  }}
-                >
-                  Cash Opening Balance
+            </div>
+
+            <div className="bg-green-50 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-green-800 mb-4">
+                Cash Summary
+              </h3>
+              <div className="space-y-2 text-sm">
+                <p className="text-gray-800">
+                  Opening: ₹{cashOpeningBalance.toFixed(2)}
                 </p>
-                <p
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: "700",
-                    color: "#16a34a",
-                    margin: "0",
-                  }}
-                >
-                  ₹{cashOpeningBalance.toFixed(2)}
+                <p className="text-gray-800">
+                  Income: ₹{cashTotals.income.toFixed(2)}
                 </p>
-              </div>
-              <div>
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "#4b5563",
-                    margin: "0 0 8px 0",
-                  }}
-                >
-                  Total Opening
+                <p className="text-gray-800">
+                  Expense: ₹{cashTotals.expense.toFixed(2)}
                 </p>
-                <p
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: "700",
-                    color: "#000000",
-                    margin: "0",
-                  }}
-                >
-                  ₹{(bankOpeningBalance + cashOpeningBalance).toFixed(2)}
+                <p className="font-bold text-base text-green-700">
+                  Closing: ₹{cashClosingBalance.toFixed(2)}
                 </p>
               </div>
-              <div>
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "#4b5563",
-                    margin: "0 0 8px 0",
-                  }}
-                >
-                  Total Income
+            </div>
+
+            <div className="bg-gray-100 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">
+                Total Summary
+              </h3>
+              <div className="space-y-2 text-sm">
+                <p className="text-gray-800">
+                  Opening: ₹
+                  {(bankOpeningBalance + cashOpeningBalance).toFixed(2)}
                 </p>
-                <p
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: "700",
-                    color: "#16a34a",
-                    margin: "0",
-                  }}
-                >
-                  ₹{totalIncome.toFixed(2)}
+                <p className="text-gray-800">
+                  Income: ₹{(bankTotals.income + cashTotals.income).toFixed(2)}
                 </p>
-              </div>
-              <div>
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "#4b5563",
-                    margin: "0 0 8px 0",
-                  }}
-                >
-                  Total Expense
+                <p className="text-gray-800">
+                  Expense: ₹
+                  {(bankTotals.expense + cashTotals.expense).toFixed(2)}
                 </p>
-                <p
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: "700",
-                    color: "#dc2626",
-                    margin: "0",
-                  }}
-                >
-                  ₹{totalExpense.toFixed(2)}
-                </p>
-              </div>
-              <div>
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "#4b5563",
-                    margin: "0 0 8px 0",
-                  }}
-                >
-                  Final Balance
-                </p>
-                <p
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: "700",
-                    color: "#2563eb",
-                    margin: "0",
-                  }}
-                >
-                  ₹{finalBalance.toFixed(2)}
+                <p className="font-bold text-base text-gray-800">
+                  Closing: ₹
+                  {(bankClosingBalance + cashClosingBalance).toFixed(2)}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Download Button and Ledger Navigation */}
-          <div
-            style={{
-              marginTop: "32px",
-              display: "flex",
-              justifyContent: "center",
-              gap: "16px",
-              flexWrap: "wrap",
-            }}
-          >
+          {/* Download Buttons */}
+          <div className="flex justify-center gap-4 mt-8 flex-wrap">
             <button
               onClick={handleDownloadPDF}
-              style={{
-                padding: "12px 32px",
-                backgroundColor: "#2563eb",
-                color: "#ffffff",
-                borderRadius: "8px",
-                fontWeight: "700",
-                fontSize: "16px",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-              onMouseEnter={(e) => {
-                (e.target as HTMLButtonElement).style.backgroundColor =
-                  "#1d4ed8";
-              }}
-              onMouseLeave={(e) => {
-                (e.target as HTMLButtonElement).style.backgroundColor =
-                  "#2563eb";
-              }}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
             >
               📄 Download PDF
             </button>
             <button
-              onClick={handleDownloadCSV}
-              style={{
-                padding: "12px 32px",
-                backgroundColor: "#16a34a",
-                color: "#ffffff",
-                borderRadius: "8px",
-                fontWeight: "700",
-                fontSize: "16px",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-              onMouseEnter={(e) => {
-                (e.target as HTMLButtonElement).style.backgroundColor =
-                  "#15803d";
-              }}
-              onMouseLeave={(e) => {
-                (e.target as HTMLButtonElement).style.backgroundColor =
-                  "#16a34a";
-              }}
+              onClick={handleDownloadXLSX}
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
             >
-              � Download CSV
+              📊 Download XLSX
             </button>
             <button
               onClick={() =>
                 router.push(`/society/${societyId}/year/${yearId}/ledger`)
               }
-              style={{
-                padding: "12px 32px",
-                backgroundColor: "#7c3aed",
-                color: "#ffffff",
-                borderRadius: "8px",
-                fontWeight: "700",
-                fontSize: "16px",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-              onMouseEnter={(e) => {
-                (e.target as HTMLButtonElement).style.backgroundColor =
-                  "#6d28d9";
-              }}
-              onMouseLeave={(e) => {
-                (e.target as HTMLButtonElement).style.backgroundColor =
-                  "#7c3aed";
-              }}
+              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold"
             >
               📋 View Ledger
             </button>
