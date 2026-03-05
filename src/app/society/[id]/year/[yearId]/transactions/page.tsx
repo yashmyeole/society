@@ -27,6 +27,8 @@ interface Transaction {
   description?: string;
   reason?: string;
   transactionType: "income" | "expense";
+  incomeType?: string;
+  expenseType?: string;
   chequeNumber?: string;
   createdAt: number;
 }
@@ -54,6 +56,7 @@ export default function TransactionsPage() {
   const [incomeForm, setIncomeForm] = useState({
     date: "",
     receiptNumber: "",
+    incomeType: "Member Contribution",
     memberId: "",
     type: "credit",
     paymentMethod: "cash",
@@ -62,6 +65,7 @@ export default function TransactionsPage() {
   });
   const [expenseForm, setExpenseForm] = useState({
     date: "",
+    expenseType: "Repair & Maintenance",
     reason: "",
     amount: "",
     paymentMethod: "cash",
@@ -83,6 +87,8 @@ export default function TransactionsPage() {
     receiptNumber: "",
     memberId: "",
     memberName: "",
+    incomeType: "",
+    expenseType: "",
     reason: "",
     amount: "",
     paymentMethod: "cash",
@@ -165,10 +171,13 @@ export default function TransactionsPage() {
     e.preventDefault();
     if (!user || !societyId || !yearId) return;
 
-    const selectedMember = members.find((m) => m.id === incomeForm.memberId);
-    if (!selectedMember) {
-      alert("Please select a member");
-      return;
+    // Only require member if income type is "Member Contribution"
+    if (incomeForm.incomeType === "Member Contribution") {
+      const selectedMember = members.find((m) => m.id === incomeForm.memberId);
+      if (!selectedMember) {
+        alert("Please select a member");
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -176,11 +185,28 @@ export default function TransactionsPage() {
       const transRef = ref(db, "transactions");
       const newTransRef = push(transRef);
 
+      // Determine memberName and memberId based on income type
+      let memberName = "";
+      let memberId = "";
+
+      if (incomeForm.incomeType === "Member Contribution") {
+        const selectedMember = members.find(
+          (m) => m.id === incomeForm.memberId,
+        );
+        memberName = selectedMember?.name || "";
+        memberId = incomeForm.memberId;
+      } else {
+        // For other income types, use the income type as the name
+        memberName = incomeForm.incomeType;
+        memberId = "";
+      }
+
       await set(newTransRef, {
         date: new Date(incomeForm.date).getTime(),
         receiptNumber: incomeForm.receiptNumber,
-        memberName: selectedMember.name,
-        memberId: incomeForm.memberId,
+        memberName: memberName,
+        memberId: memberId,
+        incomeType: incomeForm.incomeType,
         type: incomeForm.type,
         paymentMethod: incomeForm.paymentMethod,
         chequeNumber:
@@ -196,6 +222,7 @@ export default function TransactionsPage() {
       setIncomeForm({
         date: "",
         receiptNumber: "",
+        incomeType: "Member Contribution",
         memberId: "",
         type: "credit",
         paymentMethod: "cash",
@@ -222,6 +249,7 @@ export default function TransactionsPage() {
 
       await set(newTransRef, {
         date: new Date(expenseForm.date).getTime(),
+        expenseType: expenseForm.expenseType,
         reason: expenseForm.reason,
         amount: parseFloat(expenseForm.amount),
         paymentMethod: expenseForm.paymentMethod,
@@ -231,7 +259,7 @@ export default function TransactionsPage() {
             : "",
         transactionType: "expense",
         type: "debit",
-        memberName: expenseForm.reason,
+        memberName: expenseForm.expenseType,
         memberId: "",
         societyId,
         yearId,
@@ -241,6 +269,7 @@ export default function TransactionsPage() {
 
       setExpenseForm({
         date: "",
+        expenseType: "Repair & Maintenance",
         reason: "",
         amount: "",
         paymentMethod: "cash",
@@ -287,6 +316,8 @@ export default function TransactionsPage() {
       receiptNumber: transaction.receiptNumber || "",
       memberId: transaction.memberId || "",
       memberName: transaction.memberName || "",
+      incomeType: transaction.incomeType || "",
+      expenseType: transaction.expenseType || "",
       reason: transaction.reason || "",
       amount: transaction.amount.toString(),
       paymentMethod: transaction.paymentMethod || "cash",
@@ -309,6 +340,8 @@ export default function TransactionsPage() {
         receiptNumber: editForm.receiptNumber,
         memberId: editForm.memberId,
         memberName: editForm.memberName,
+        incomeType: editForm.incomeType,
+        expenseType: editForm.expenseType,
         reason: editForm.reason,
         amount: parseFloat(editForm.amount),
         paymentMethod: editForm.paymentMethod,
@@ -613,24 +646,50 @@ export default function TransactionsPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Member *
+                Income Type *
               </label>
               <select
                 required
-                value={incomeForm.memberId}
+                value={incomeForm.incomeType}
                 onChange={(e) =>
-                  setIncomeForm({ ...incomeForm, memberId: e.target.value })
+                  setIncomeForm({
+                    ...incomeForm,
+                    incomeType: e.target.value,
+                    memberId: "", // Reset member when income type changes
+                  })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">Select a member</option>
-                {members.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name}
-                  </option>
-                ))}
+                <option value="Member Contribution">Member Contribution</option>
+                <option value="Bank Interest">Bank Interest</option>
+                <option value="Transfer Fee">Transfer Fee</option>
+                <option value="Entrance Fee">Entrance Fee</option>
+                <option value="Other Income">Other Income</option>
               </select>
             </div>
+
+            {incomeForm.incomeType === "Member Contribution" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Member *
+                </label>
+                <select
+                  required
+                  value={incomeForm.memberId}
+                  onChange={(e) =>
+                    setIncomeForm({ ...incomeForm, memberId: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select a member</option>
+                  {members.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -751,26 +810,57 @@ export default function TransactionsPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Reason for Expense *
+                Expense Type *
               </label>
               <select
                 required
+                value={expenseForm.expenseType}
+                onChange={(e) =>
+                  setExpenseForm({
+                    ...expenseForm,
+                    expenseType: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="Repair & Maintenance">
+                  Repair & Maintenance
+                </option>
+                <option value="Sweeper Salary">Sweeper Salary</option>
+                <option value="Security Guard Salary">
+                  Security Guard Salary
+                </option>
+                <option value="Pump Operator Salary">
+                  Pump Operator Salary
+                </option>
+                <option value="Electric Bill">Electric Bill</option>
+                <option value="Water Bill">Water Bill</option>
+                <option value="Property Tax">Property Tax</option>
+                <option value="Bank Charges">Bank Charges</option>
+                <option value="Miscellaneous Expenses">
+                  Miscellaneous Expenses
+                </option>
+                <option value="Other Expenses">Other Expenses</option>
+                <option value="Conveyance">Conveyance</option>
+                <option value="Conveyance Deed Expenses">
+                  Conveyance Deed Expenses
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description / Notes
+              </label>
+              <input
+                type="text"
                 value={expenseForm.reason}
                 onChange={(e) =>
                   setExpenseForm({ ...expenseForm, reason: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select reason</option>
-                <option value="Sweeper">Sweeper</option>
-                <option value="Security Guard">Security Guard</option>
-                <option value="Maintenance">Maintenance</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Repairs">Repairs</option>
-                <option value="Insurance">Insurance</option>
-                <option value="Administrative">Administrative</option>
-                <option value="Other">Other</option>
-              </select>
+                placeholder="e.g., Monthly sweeper salary, Repair details, etc."
+              />
             </div>
 
             <div>
@@ -886,9 +976,102 @@ export default function TransactionsPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
             </div>
+
+            {editForm.transactionType === "income" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Income Type *
+                </label>
+                <select
+                  value={editForm.incomeType}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      incomeType: e.target.value,
+                      memberId: "",
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Select income type</option>
+                  <option value="Member Contribution">
+                    Member Contribution
+                  </option>
+                  <option value="Bank Interest">Bank Interest</option>
+                  <option value="Transfer Fee">Transfer Fee</option>
+                  <option value="Entrance Fee">Entrance Fee</option>
+                  <option value="Other Income">Other Income</option>
+                </select>
+              </div>
+            )}
+
+            {editForm.transactionType === "expense" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Expense Type *
+                </label>
+                <select
+                  value={editForm.expenseType}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, expenseType: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Select expense type</option>
+                  <option value="Repair & Maintenance">
+                    Repair & Maintenance
+                  </option>
+                  <option value="Sweeper Salary">Sweeper Salary</option>
+                  <option value="Security Guard Salary">
+                    Security Guard Salary
+                  </option>
+                  <option value="Pump Operator Salary">
+                    Pump Operator Salary
+                  </option>
+                  <option value="Electric Bill">Electric Bill</option>
+                  <option value="Water Bill">Water Bill</option>
+                  <option value="Property Tax">Property Tax</option>
+                  <option value="Bank Charges">Bank Charges</option>
+                  <option value="Miscellaneous Expenses">
+                    Miscellaneous Expenses
+                  </option>
+                  <option value="Other Expenses">Other Expenses</option>
+                  <option value="Conveyance">Conveyance</option>
+                  <option value="Conveyance Deed Expenses">
+                    Conveyance Deed Expenses
+                  </option>
+                </select>
+              </div>
+            )}
+
+            {editForm.transactionType === "income" &&
+              editForm.incomeType === "Member Contribution" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Member *
+                  </label>
+                  <select
+                    value={editForm.memberId}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, memberId: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="">Select a member</option>
+                    {members.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Member Name / Reason
+                {editForm.transactionType === "income"
+                  ? "Member Name / Description"
+                  : "Reason / Notes"}
               </label>
               <input
                 type="text"
