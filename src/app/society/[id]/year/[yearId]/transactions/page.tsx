@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/Modal";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { formatDate } from "@/lib/dateFormat";
 
 interface Member {
   id: string;
@@ -26,6 +27,7 @@ interface Transaction {
   description?: string;
   reason?: string;
   transactionType: "income" | "expense";
+  chequeNumber?: string;
   createdAt: number;
 }
 
@@ -55,6 +57,7 @@ export default function TransactionsPage() {
     memberId: "",
     type: "credit",
     paymentMethod: "cash",
+    chequeNumber: "",
     amount: "",
   });
   const [expenseForm, setExpenseForm] = useState({
@@ -62,6 +65,7 @@ export default function TransactionsPage() {
     reason: "",
     amount: "",
     paymentMethod: "cash",
+    chequeNumber: "",
   });
   const { user } = useAuth();
   const router = useRouter();
@@ -82,6 +86,7 @@ export default function TransactionsPage() {
     reason: "",
     amount: "",
     paymentMethod: "cash",
+    chequeNumber: "",
     type: "credit",
     transactionType: "income",
   });
@@ -178,6 +183,8 @@ export default function TransactionsPage() {
         memberId: incomeForm.memberId,
         type: incomeForm.type,
         paymentMethod: incomeForm.paymentMethod,
+        chequeNumber:
+          incomeForm.paymentMethod === "cheque" ? incomeForm.chequeNumber : "",
         amount: parseFloat(incomeForm.amount),
         transactionType: "income",
         societyId,
@@ -192,6 +199,7 @@ export default function TransactionsPage() {
         memberId: "",
         type: "credit",
         paymentMethod: "cash",
+        chequeNumber: "",
         amount: "",
       });
       setIsIncomeModalOpen(false);
@@ -217,6 +225,10 @@ export default function TransactionsPage() {
         reason: expenseForm.reason,
         amount: parseFloat(expenseForm.amount),
         paymentMethod: expenseForm.paymentMethod,
+        chequeNumber:
+          expenseForm.paymentMethod === "cheque"
+            ? expenseForm.chequeNumber
+            : "",
         transactionType: "expense",
         type: "debit",
         memberName: expenseForm.reason,
@@ -232,6 +244,7 @@ export default function TransactionsPage() {
         reason: "",
         amount: "",
         paymentMethod: "cash",
+        chequeNumber: "",
       });
       setIsExpenseModalOpen(false);
       fetchData();
@@ -277,6 +290,7 @@ export default function TransactionsPage() {
       reason: transaction.reason || "",
       amount: transaction.amount.toString(),
       paymentMethod: transaction.paymentMethod || "cash",
+      chequeNumber: transaction.chequeNumber || "",
       type: transaction.type || "credit",
       transactionType: transaction.transactionType,
     });
@@ -298,6 +312,8 @@ export default function TransactionsPage() {
         reason: editForm.reason,
         amount: parseFloat(editForm.amount),
         paymentMethod: editForm.paymentMethod,
+        chequeNumber:
+          editForm.paymentMethod === "cheque" ? editForm.chequeNumber : "",
         type: editForm.type,
         transactionType: editForm.transactionType,
       });
@@ -419,7 +435,7 @@ export default function TransactionsPage() {
                               {transaction.memberName}
                             </p>
                             <p className="text-sm text-gray-600">
-                              {new Date(transaction.date).toLocaleDateString()}
+                              {formatDate(transaction.date)}
                             </p>
                             <p className="text-sm text-gray-600">
                               Receipt: {transaction.receiptNumber}
@@ -507,7 +523,7 @@ export default function TransactionsPage() {
                               {transaction.reason}
                             </p>
                             <p className="text-sm text-gray-600">
-                              {new Date(transaction.date).toLocaleDateString()}
+                              {formatDate(transaction.date)}
                             </p>
                             <p className="text-xs text-gray-500">
                               {transaction.paymentMethod.toUpperCase()}
@@ -655,6 +671,26 @@ export default function TransactionsPage() {
               </select>
             </div>
 
+            {incomeForm.paymentMethod === "cheque" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cheque Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={incomeForm.chequeNumber}
+                  onChange={(e) =>
+                    setIncomeForm({
+                      ...incomeForm,
+                      chequeNumber: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Amount *
@@ -756,6 +792,26 @@ export default function TransactionsPage() {
                 <option value="upi">UPI</option>
               </select>
             </div>
+
+            {expenseForm.paymentMethod === "cheque" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cheque Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={expenseForm.chequeNumber}
+                  onChange={(e) =>
+                    setExpenseForm({
+                      ...expenseForm,
+                      chequeNumber: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -881,6 +937,25 @@ export default function TransactionsPage() {
                 <option value="upi">UPI</option>
               </select>
             </div>
+            {editForm.paymentMethod === "cheque" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cheque Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.chequeNumber}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      chequeNumber: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+            )}
             <div className="flex gap-3 pt-4">
               <button
                 type="submit"

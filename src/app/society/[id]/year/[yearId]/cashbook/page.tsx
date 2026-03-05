@@ -12,6 +12,7 @@ import html2canvas from "html2canvas";
 import * as XLSX from "xlsx";
 import ExcelJS, { Alignment, Style, Borders } from "exceljs";
 import { saveAs } from "file-saver";
+import { formatDate } from "@/lib/dateFormat";
 
 interface Transaction {
   id: string;
@@ -23,6 +24,7 @@ interface Transaction {
   amount: number;
   reason?: string;
   transactionType: "income" | "expense";
+  chequeNumber?: string;
 }
 
 interface FinancialYear {
@@ -433,10 +435,16 @@ export default function CashbookPage() {
           if (t.transactionType === "income") balance += t.amount;
           else balance -= t.amount;
 
+          let details =
+            t.transactionType === "income" ? t.memberName : t.reason || "";
+          if (t.paymentMethod === "cheque" && t.chequeNumber) {
+            details += ` (Cheque: ${t.chequeNumber})`;
+          }
+
           const row = sheet.addRow([
-            new Date(t.date).toLocaleDateString("en-IN"),
+            formatDate(t.date),
             t.receiptNumber || "",
-            t.transactionType === "income" ? t.memberName : t.reason || "",
+            details,
             t.transactionType === "expense" ? t.amount : "",
             t.transactionType === "income" ? t.amount : "",
             balance,
@@ -833,7 +841,7 @@ export default function CashbookPage() {
                       bankTrans.map((trans, index) => (
                         <tr key={trans.id} className="hover:bg-gray-50">
                           <td className="border border-gray-300 px-4 py-2 text-gray-800">
-                            {new Date(trans.date).toLocaleDateString("en-IN")}
+                            {formatDate(trans.date)}
                           </td>
                           <td className="border border-gray-300 px-4 py-2 text-gray-800">
                             {trans.receiptNumber || "-"}
@@ -951,7 +959,7 @@ export default function CashbookPage() {
                       cashTrans.map((trans, index) => (
                         <tr key={trans.id} className="hover:bg-gray-50">
                           <td className="border border-gray-300 px-4 py-2 text-gray-800">
-                            {new Date(trans.date).toLocaleDateString("en-IN")}
+                            {formatDate(trans.date)}
                           </td>
                           <td className="border border-gray-300 px-4 py-2 text-gray-800">
                             {trans.receiptNumber || "-"}

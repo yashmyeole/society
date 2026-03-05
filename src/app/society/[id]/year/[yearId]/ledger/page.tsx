@@ -3,10 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { ref, get } from "firebase/database";
+import { ref, get, set } from "firebase/database";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import ExcelJS, { Alignment } from "exceljs";
+import { formatDate } from "@/lib/dateFormat";
+import { saveAs } from "file-saver";
 
 interface Transaction {
   id: string;
@@ -18,6 +21,7 @@ interface Transaction {
   amount: number;
   reason?: string;
   transactionType: "income" | "expense";
+  chequeNumber?: string;
 }
 
 interface Member {
@@ -39,6 +43,11 @@ interface Society {
   address: string;
 }
 
+interface PersonOpeningBalance {
+  personName: string;
+  openingBalance: number;
+}
+
 export default function LedgerPage() {
   const params = useParams();
   const societyId = params.id as string;
@@ -54,6 +63,13 @@ export default function LedgerPage() {
   const [loading, setLoading] = useState(true);
   const [selectedPerson, setSelectedPerson] = useState<string>("");
   const [fetched, setFetched] = useState(false);
+  const [personOpeningBalances, setPersonOpeningBalances] = useState<
+    Map<string, number>
+  >(new Map());
+  const [editingOpeningBalance, setEditingOpeningBalance] = useState<
+    string | null
+  >(null);
+  const [tempOpeningBalance, setTempOpeningBalance] = useState<string>("");
   const { user } = useAuth();
   const router = useRouter();
 
@@ -136,6 +152,23 @@ export default function LedgerPage() {
       }));
 
       setExpensePersons(uniqueExpensePersons);
+
+      // Fetch opening balances for this year
+      const openingBalancesRef = ref(
+        db,
+        `personOpeningBalances/${societyId}/${yearId}`,
+      );
+      const openingBalancesSnapshot = await get(openingBalancesRef);
+      const balancesMap = new Map<string, number>();
+      if (openingBalancesSnapshot.exists()) {
+        const balancesData = openingBalancesSnapshot.val();
+        Object.entries(balancesData).forEach(
+          ([personName, balance]: [string, any]) => {
+            balancesMap.set(personName, balance || 0);
+          },
+        );
+      }
+      setPersonOpeningBalances(balancesMap);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -174,30 +207,333 @@ export default function LedgerPage() {
       .reduce((sum, t) => sum + t.amount, 0);
   };
 
-  const downloadExcel = () => {
+  const getOpeningBalance = (personName: string): number => {
+    return personOpeningBalances.get(personName) || 0;
+  };
+
+  const handleEditOpeningBalance = (personName: string) => {
+    setEditingOpeningBalance(personName);
+    setTempOpeningBalance(
+      (personOpeningBalances.get(personName) || 0).toString(),
+    );
+  };
+
+  const handleSaveOpeningBalance = async () => {
+    if (editingOpeningBalance === null) return;
+
+    try {
+      const balanceValue = parseFloat(tempOpeningBalance);
+      if (isNaN(balanceValue)) {
+        alert("Please enter a valid number");
+        return;
+      }
+
+      const updatedBalances = new Map(personOpeningBalances);
+      updatedBalances.set(editingOpeningBalance, balanceValue);
+      setPersonOpeningBalances(updatedBalances);
+
+      // Save to Firebase
+      const balanceRef = ref(
+        db,
+        `personOpeningBalances/${societyId}/${yearId}/${editingOpeningBalance}`,
+      );
+      await set(balanceRef, balanceValue);
+
+      setEditingOpeningBalance(null);
+      setTempOpeningBalance("");
+    } catch (error) {
+      console.error("Error saving opening balance:", error);
+      alert("Error saving opening balance");
+    }
+  };
+
+  const downloadAllMembersExcel = async () => {
+    try {
+      if (allTransactions.length === 0) {
+        alert("No transactions to download");
+        return;
+      }
+
+      const workbook = new ExcelJS.Workbook();
+
+      const center: Partial<Alignment> = {
+        horizontal: "center",
+        vertical: "middle",
+        wrapText: true,
+      };
+      const verticalBorder = {
+        top: { style: "thin" as const },
+        left: { style: "thin" as const },
+        bottom: { style: "thin" as const },
+        right: { style: "thin" as const },
+      };
+      const headerBorder = {
+        top: { style: "thin" as const, color: { argb: "FF000000" } },
+        left: { style: "thin" as const, color: { argb: "FF000000" } },
+        bottom: { style: "thin" as const, color: { argb: "FF000000" } },
+        right: { style: "thin" as const, color: { argb: "FF000000" } },
+      };
+
+      // Get all unique members (from income transactions) and expense persons
+      const allPeople = new Set<string>();
+      allTransactions.forEach((trans) => {
+        if (trans.transactionType === "income") {
+          allPeople.add(trans.memberName);
+        } else {
+          allPeople.add(trans.reason || "");
+        }
+      });
+
+      const peopleArray = Array.from(allPeople)
+        .filter((p) => p !== "")
+        .sort();
+
+      // Create a sheet for each person
+      peopleArray.forEach((personName) => {
+        const sheet = workbook.addWorksheet(personName.substring(0, 31)); // Excel has 31 char limit
+
+        sheet.columns = [
+          { width: 12 },
+          { width: 12 },
+          { width: 30 },
+          { width: 12 },
+          { width: 12 },
+          { width: 12 },
+        ];
+
+        const titleRow = sheet.addRow([`${society?.name}`]);
+        titleRow.getCell(1).font = {
+          bold: true,
+          size: 16,
+          color: { argb: "FF1F4E78" },
+        };
+        titleRow.getCell(1).alignment = center;
+        sheet.mergeCells("A1:F1");
+
+        const subtitleRow = sheet.addRow([`LEDGER - ${personName}`]);
+        subtitleRow.getCell(1).font = {
+          bold: true,
+          size: 12,
+          color: { argb: "FF1F4E78" },
+        };
+        subtitleRow.getCell(1).alignment = center;
+        sheet.mergeCells("A2:F2");
+
+        const yearRow = sheet.addRow([`FINANCIAL YEAR: ${year?.year}`]);
+        yearRow.getCell(1).font = {
+          bold: true,
+          size: 12,
+          color: { argb: "FF1F4E78" },
+        };
+        yearRow.getCell(1).alignment = center;
+        sheet.mergeCells("A3:F3");
+
+        sheet.addRow([]);
+
+        const headerRow = sheet.addRow([
+          "Date",
+          "Receipt No",
+          "Details",
+          "Income (₹)",
+          "Expense (₹)",
+          "Balance (₹)",
+        ]);
+
+        headerRow.eachCell((c) => {
+          c.border = headerBorder;
+          c.font = { bold: true };
+          c.alignment = center;
+          c.fill = {
+            type: "pattern" as const,
+            pattern: "solid",
+            fgColor: { argb: "FF366092" },
+          };
+          c.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        });
+
+        // Filter transactions for this person
+        const personTransactions = allTransactions.filter((trans) => {
+          if (trans.transactionType === "income") {
+            return trans.memberName === personName;
+          } else {
+            return trans.reason === personName;
+          }
+        });
+
+        const openingBalance = personOpeningBalances.get(personName) || 0;
+        let runningBalance = openingBalance;
+        const totalIncome = personTransactions
+          .filter((t) => t.transactionType === "income")
+          .reduce((sum, t) => sum + t.amount, 0);
+        const totalExpense = personTransactions
+          .filter((t) => t.transactionType === "expense")
+          .reduce((sum, t) => sum + t.amount, 0);
+
+        personTransactions.forEach((transaction) => {
+          if (transaction.transactionType === "income") {
+            runningBalance += transaction.amount;
+          } else {
+            runningBalance -= transaction.amount;
+          }
+
+          let details =
+            transaction.transactionType === "income"
+              ? `Income from ${transaction.memberName}`
+              : `Expense: ${transaction.reason}`;
+
+          if (
+            transaction.paymentMethod === "cheque" &&
+            transaction.chequeNumber
+          ) {
+            details += ` (Cheque: ${transaction.chequeNumber})`;
+          }
+
+          const row = sheet.addRow([
+            formatDate(transaction.date),
+            transaction.receiptNumber || "",
+            details,
+            transaction.transactionType === "income" ? transaction.amount : "",
+            transaction.transactionType === "expense" ? transaction.amount : "",
+            runningBalance,
+          ]);
+
+          row.getCell(4).numFmt = "0.00";
+          row.getCell(5).numFmt = "0.00";
+          row.getCell(6).numFmt = "0.00";
+          row.eachCell((c) => (c.border = verticalBorder));
+        });
+
+        const totalRow = sheet.addRow([
+          "",
+          "",
+          "TOTAL",
+          totalIncome,
+          totalExpense,
+          openingBalance + totalIncome - totalExpense,
+        ]);
+
+        totalRow.getCell(4).numFmt = "0.00";
+        totalRow.getCell(5).numFmt = "0.00";
+        totalRow.getCell(6).numFmt = "0.00";
+        totalRow.eachCell((c) => {
+          c.border = verticalBorder;
+          c.font = { bold: true };
+          c.fill = {
+            type: "pattern" as const,
+            pattern: "solid",
+            fgColor: { argb: "FFE7E6E6" },
+          };
+        });
+      });
+
+      await workbook.xlsx.writeBuffer().then((buffer) => {
+        const blob = new Blob([buffer], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${society?.name}-All-Members-Ledger-${year?.year}.xlsx`;
+        link.click();
+        URL.revokeObjectURL(url);
+      });
+    } catch (error) {
+      console.error("Download Error:", error);
+      alert(`Error: ${(error as Error).message}`);
+    }
+  };
+
+  const downloadExcel = async () => {
     try {
       if (filteredTransactions.length === 0) {
         alert("No transactions to download");
         return;
       }
 
-      // Create Excel-compatible CSV
-      const totalIncome = calculateTotalIncome();
-      const totalExpense = calculateTotalExpense();
-      const netBalance = totalIncome - totalExpense;
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Ledger");
 
-      const csvHeader = [
-        [`${society?.name} - LEDGER`, "", "", "", ""],
-        [`FINANCIAL YEAR : ${year?.year}`, "", "", "", ""],
-        [`PERSON : ${selectedPerson}`, "", "", "", ""],
-        [],
-        ["DATE", "DETAILS", "INCOME (₹)", "EXPENSE (₹)", "BALANCE (₹)"],
+      const center: Partial<Alignment> = {
+        horizontal: "center",
+        vertical: "middle",
+        wrapText: true,
+      };
+      const verticalBorder = {
+        top: { style: "thin" as const },
+        left: { style: "thin" as const },
+        bottom: { style: "thin" as const },
+        right: { style: "thin" as const },
+      };
+      const headerBorder = {
+        top: { style: "thin" as const, color: { argb: "FF000000" } },
+        left: { style: "thin" as const, color: { argb: "FF000000" } },
+        bottom: { style: "thin" as const, color: { argb: "FF000000" } },
+        right: { style: "thin" as const, color: { argb: "FF000000" } },
+      };
+
+      sheet.columns = [
+        { width: 12 },
+        { width: 12 },
+        { width: 30 },
+        { width: 12 },
+        { width: 12 },
+        { width: 12 },
       ];
 
-      const csvData: string[][] = [];
-      let runningBalance = 0;
+      const titleRow = sheet.addRow([`${society?.name}`]);
+      titleRow.getCell(1).font = {
+        bold: true,
+        size: 16,
+        color: { argb: "FF1F4E78" },
+      };
+      titleRow.getCell(1).alignment = center;
+      sheet.mergeCells("A1:F1");
 
-      // Add transaction rows
+      const subtitleRow = sheet.addRow([`LEDGER - ${selectedPerson}`]);
+      subtitleRow.getCell(1).font = {
+        bold: true,
+        size: 12,
+        color: { argb: "FF1F4E78" },
+      };
+      subtitleRow.getCell(1).alignment = center;
+      sheet.mergeCells("A2:F2");
+
+      const yearRow = sheet.addRow([`FINANCIAL YEAR: ${year?.year}`]);
+      yearRow.getCell(1).font = {
+        bold: true,
+        size: 12,
+        color: { argb: "FF1F4E78" },
+      };
+      yearRow.getCell(1).alignment = center;
+      sheet.mergeCells("A3:F3");
+
+      sheet.addRow([]);
+
+      const headerRow = sheet.addRow([
+        "Date",
+        "Receipt No",
+        "Details",
+        "Income (₹)",
+        "Expense (₹)",
+        "Balance (₹)",
+      ]);
+
+      headerRow.eachCell((c) => {
+        c.border = headerBorder;
+        c.font = { bold: true };
+        c.alignment = center;
+        c.fill = {
+          type: "pattern" as const,
+          pattern: "solid",
+          fgColor: { argb: "FF366092" },
+        };
+        c.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      });
+
+      let runningBalance = getOpeningBalance(selectedPerson);
+      const totalIncome = calculateTotalIncome();
+      const totalExpense = calculateTotalExpense();
+
       filteredTransactions.forEach((transaction) => {
         if (transaction.transactionType === "income") {
           runningBalance += transaction.amount;
@@ -205,57 +541,66 @@ export default function LedgerPage() {
           runningBalance -= transaction.amount;
         }
 
-        csvData.push([
-          new Date(transaction.date).toLocaleDateString("en-IN", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          }),
+        let details =
           transaction.transactionType === "income"
             ? `Income from ${transaction.memberName}`
-            : `Expense: ${transaction.reason}`,
-          transaction.transactionType === "income"
-            ? transaction.amount.toFixed(2)
-            : "",
-          transaction.transactionType === "expense"
-            ? transaction.amount.toFixed(2)
-            : "",
-          runningBalance.toFixed(2),
+            : `Expense: ${transaction.reason}`;
+
+        if (
+          transaction.paymentMethod === "cheque" &&
+          transaction.chequeNumber
+        ) {
+          details += ` (Cheque: ${transaction.chequeNumber})`;
+        }
+
+        const row = sheet.addRow([
+          formatDate(transaction.date),
+          transaction.receiptNumber || "",
+          details,
+          transaction.transactionType === "income" ? transaction.amount : "",
+          transaction.transactionType === "expense" ? transaction.amount : "",
+          runningBalance,
         ]);
+
+        row.getCell(4).numFmt = "0.00";
+        row.getCell(5).numFmt = "0.00";
+        row.getCell(6).numFmt = "0.00";
+        row.eachCell((c) => (c.border = verticalBorder));
       });
 
-      // Add total row
-      if (filteredTransactions.length > 0) {
-        csvData.push([
-          "",
-          "TOTAL",
-          totalIncome.toFixed(2),
-          totalExpense.toFixed(2),
-          netBalance.toFixed(2),
-        ]);
-      }
+      const totalRow = sheet.addRow([
+        "",
+        "",
+        "TOTAL",
+        totalIncome,
+        totalExpense,
+        getOpeningBalance(selectedPerson) + totalIncome - totalExpense,
+      ]);
 
-      // Combine header and data
-      const allRows = [...csvHeader, ...csvData];
+      totalRow.getCell(4).numFmt = "0.00";
+      totalRow.getCell(5).numFmt = "0.00";
+      totalRow.getCell(6).numFmt = "0.00";
+      totalRow.eachCell((c) => {
+        c.border = verticalBorder;
+        c.font = { bold: true };
+        c.fill = {
+          type: "pattern" as const,
+          pattern: "solid",
+          fgColor: { argb: "FFE7E6E6" },
+        };
+      });
 
-      // Convert to CSV string
-      const csvContent = allRows
-        .map((row) => row.map((cell) => `"${cell}"`).join(","))
-        .join("\n");
-
-      // Create and download file
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `${society?.name}-${selectedPerson}-Ledger-${year?.year}.csv`,
-      );
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      await workbook.xlsx.writeBuffer().then((buffer) => {
+        const blob = new Blob([buffer], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${society?.name}-${selectedPerson}-Ledger-${year?.year}.xlsx`;
+        link.click();
+        URL.revokeObjectURL(url);
+      });
     } catch (error) {
       console.error("Download Error:", error);
       alert(`Error: ${(error as Error).message}`);
@@ -288,7 +633,8 @@ export default function LedgerPage() {
 
   const totalIncome = calculateTotalIncome();
   const totalExpense = calculateTotalExpense();
-  const netBalance = totalIncome - totalExpense;
+  const netBalance =
+    getOpeningBalance(selectedPerson) + totalIncome - totalExpense;
 
   return (
     <ProtectedRoute>
@@ -350,6 +696,74 @@ export default function LedgerPage() {
               >
                 Fetch Ledger
               </button>
+
+              {/* Opening Balance Section */}
+              {selectedPerson && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-700 mb-2">
+                        Opening Balance for {selectedPerson}
+                      </p>
+                      {editingOpeningBalance === selectedPerson ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={tempOpeningBalance}
+                            onChange={(e) =>
+                              setTempOpeningBalance(e.target.value)
+                            }
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter amount"
+                            autoFocus
+                          />
+                          <button
+                            onClick={handleSaveOpeningBalance}
+                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium text-sm transition-colors"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingOpeningBalance(null)}
+                            className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 font-medium text-sm transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <p className="text-2xl font-bold text-blue-600">
+                            ₹{getOpeningBalance(selectedPerson).toFixed(2)}
+                          </p>
+                          <button
+                            onClick={() =>
+                              handleEditOpeningBalance(selectedPerson)
+                            }
+                            className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium text-sm transition-colors"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-600 mt-2">
+                        {getOpeningBalance(selectedPerson) > 0
+                          ? "Positive: Amount owed to member"
+                          : getOpeningBalance(selectedPerson) < 0
+                            ? "Negative: Member owes amount"
+                            : "Zero: No opening balance"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={downloadAllMembersExcel}
+                className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 font-medium transition-colors"
+              >
+                📋 Download All Members Ledger
+              </button>
             </div>
           </div>
 
@@ -365,7 +779,23 @@ export default function LedgerPage() {
               ) : (
                 <>
                   {/* Summary Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                      <h3 className="text-sm font-semibold text-gray-600 mb-2">
+                        Opening Balance
+                      </h3>
+                      <p
+                        className={`text-3xl font-bold ${
+                          getOpeningBalance(selectedPerson) > 0
+                            ? "text-purple-600"
+                            : getOpeningBalance(selectedPerson) < 0
+                              ? "text-orange-600"
+                              : "text-gray-600"
+                        }`}
+                      >
+                        ₹{getOpeningBalance(selectedPerson).toFixed(2)}
+                      </p>
+                    </div>
                     <div className="bg-white rounded-lg shadow-md p-6">
                       <h3 className="text-sm font-semibold text-gray-600 mb-2">
                         Total Income
@@ -447,13 +877,7 @@ export default function LedgerPage() {
                                 className="border-b border-gray-200 hover:bg-gray-50"
                               >
                                 <td className="px-6 py-3 text-sm text-gray-900">
-                                  {new Date(
-                                    transaction.date,
-                                  ).toLocaleDateString("en-IN", {
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    year: "numeric",
-                                  })}
+                                  {formatDate(transaction.date)}
                                 </td>
                                 <td className="px-6 py-3 text-sm text-gray-900">
                                   {transaction.transactionType === "income"
@@ -506,7 +930,7 @@ export default function LedgerPage() {
                   </div>
 
                   {/* Download Button */}
-                  <div className="flex justify-center">
+                  <div className="flex justify-center gap-4">
                     <button
                       onClick={downloadExcel}
                       className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold transition-colors flex items-center gap-2"

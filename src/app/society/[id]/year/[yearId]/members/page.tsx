@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/Modal";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { formatDate } from "@/lib/dateFormat";
 
 interface Member {
   id: string;
@@ -211,7 +212,7 @@ export default function MembersPage() {
                       {member.contactNumber}
                     </p>
                     <p className="text-xs text-gray-500 pt-4">
-                      Added: {new Date(member.createdAt).toLocaleDateString()}
+                      Added: {formatDate(member.createdAt)}
                     </p>
                   </div>
                 </div>

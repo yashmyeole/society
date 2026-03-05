@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/Modal";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { formatDate } from "@/lib/dateFormat";
 
 interface FinancialYear {
   id: string;
@@ -186,7 +187,7 @@ export default function SocietyPage() {
                       FY {fy.year}
                     </h3>
                     <p className="text-gray-600 text-sm">
-                      Created: {new Date(fy.createdAt).toLocaleDateString()}
+                      Created: {formatDate(fy.createdAt)}
                     </p>
                   </div>
                   <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex gap-2">
