@@ -24,7 +24,8 @@ interface Transaction {
 
 interface FinancialYear {
   year: string;
-  openingBalance?: number;
+  bankOpeningBalance?: number;
+  cashOpeningBalance?: number;
   closingBalance?: number;
 }
 
@@ -41,9 +42,11 @@ export default function CashbookPage() {
   const [year, setYear] = useState<FinancialYear | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [openingBalance, setOpeningBalance] = useState<number>(0);
+  const [bankOpeningBalance, setBankOpeningBalance] = useState<number>(0);
+  const [cashOpeningBalance, setCashOpeningBalance] = useState<number>(0);
   const [closingBalance, setClosingBalance] = useState<number>(0);
-  const [editingOpening, setEditingOpening] = useState(false);
+  const [editingBankOpening, setEditingBankOpening] = useState(false);
+  const [editingCashOpening, setEditingCashOpening] = useState(false);
   const [editingClosing, setEditingClosing] = useState(false);
   const [savingBalance, setSavingBalance] = useState(false);
   const { user } = useAuth();
@@ -72,7 +75,8 @@ export default function CashbookPage() {
       if (yearSnapshot.exists()) {
         const yearData = yearSnapshot.val() as FinancialYear;
         setYear(yearData);
-        setOpeningBalance(yearData.openingBalance || 0);
+        setBankOpeningBalance(yearData.bankOpeningBalance || 0);
+        setCashOpeningBalance(yearData.cashOpeningBalance || 0);
         setClosingBalance(yearData.closingBalance || 0);
       }
 
@@ -104,7 +108,7 @@ export default function CashbookPage() {
     }
   };
 
-  const handleSaveBalance = async (type: "opening" | "closing") => {
+  const handleSaveBalance = async (type: "bankOpening" | "cashOpening" | "closing") => {
     if (!user || !yearId) return;
 
     setSavingBalance(true);
@@ -113,20 +117,41 @@ export default function CashbookPage() {
       const yearSnapshot = await get(yearRef);
       const yearData = yearSnapshot.val();
 
+      let fieldName = "";
+      let fieldValue = 0;
+
+      if (type === "bankOpening") {
+        fieldName = "bankOpeningBalance";
+        fieldValue = bankOpeningBalance;
+      } else if (type === "cashOpening") {
+        fieldName = "cashOpeningBalance";
+        fieldValue = cashOpeningBalance;
+      } else {
+        fieldName = "closingBalance";
+        fieldValue = closingBalance;
+      }
+
       const updatedData = {
         ...yearData,
-        [type === "opening" ? "openingBalance" : "closingBalance"]:
-          type === "opening" ? openingBalance : closingBalance,
+        [fieldName]: fieldValue,
       };
 
       await set(yearRef, updatedData);
       setYear(updatedData);
       alert(
-        `${type === "opening" ? "Opening" : "Closing"} balance saved successfully!`,
+        `${
+          type === "bankOpening"
+            ? "Bank Opening"
+            : type === "cashOpening"
+            ? "Cash Opening"
+            : "Closing"
+        } balance saved successfully!`,
       );
 
-      if (type === "opening") {
-        setEditingOpening(false);
+      if (type === "bankOpening") {
+        setEditingBankOpening(false);
+      } else if (type === "cashOpening") {
+        setEditingCashOpening(false);
       } else {
         setEditingClosing(false);
       }
@@ -139,7 +164,8 @@ export default function CashbookPage() {
   };
 
   const calculateRunningBalance = (index: number): number => {
-    let balance = openingBalance;
+    const totalOpening = bankOpeningBalance + cashOpeningBalance;
+    let balance = totalOpening;
     for (let i = 0; i <= index; i++) {
       const trans = transactions[i];
       if (trans.transactionType === "income") {
@@ -159,7 +185,8 @@ export default function CashbookPage() {
     .filter((t) => t.transactionType === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const finalBalance = openingBalance + totalIncome - totalExpense;
+  const totalOpening = bankOpeningBalance + cashOpeningBalance;
+  const finalBalance = totalOpening + totalIncome - totalExpense;
 
   const handleDownloadPDF = async () => {
     const element = document.getElementById("cashbook-content");
@@ -235,14 +262,24 @@ export default function CashbookPage() {
       // Create data rows
       const csvData: string[][] = [];
 
-      // Add opening balance row (NO DATE)
+      // Add bank opening balance row
       csvData.push([
         "",
         "",
-        "OPENING BALANCE",
+        "BANK OPENING BALANCE",
         "",
-        openingBalance.toFixed(2),
-        openingBalance.toFixed(2),
+        bankOpeningBalance.toFixed(2),
+        bankOpeningBalance.toFixed(2),
+      ]);
+
+      // Add cash opening balance row
+      csvData.push([
+        "",
+        "",
+        "CASH OPENING BALANCE",
+        "",
+        cashOpeningBalance.toFixed(2),
+        (bankOpeningBalance + cashOpeningBalance).toFixed(2),
       ]);
 
       // Add transaction rows
@@ -374,26 +411,26 @@ export default function CashbookPage() {
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Balance Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {/* Opening Balance */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {/* Bank Opening Balance */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-lg font-bold text-gray-900 mb-4">
-                Opening Balance
+                Bank Opening Balance
               </h2>
-              {editingOpening ? (
+              {editingBankOpening ? (
                 <div className="space-y-4">
                   <input
                     type="number"
-                    value={openingBalance}
+                    value={bankOpeningBalance}
                     onChange={(e) =>
-                      setOpeningBalance(parseFloat(e.target.value) || 0)
+                      setBankOpeningBalance(parseFloat(e.target.value) || 0)
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter opening balance"
+                    placeholder="Enter bank opening balance"
                   />
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleSaveBalance("opening")}
+                      onClick={() => handleSaveBalance("bankOpening")}
                       disabled={savingBalance}
                       className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
                     >
@@ -401,8 +438,58 @@ export default function CashbookPage() {
                     </button>
                     <button
                       onClick={() => {
-                        setEditingOpening(false);
-                        setOpeningBalance(year?.openingBalance || 0);
+                        setEditingBankOpening(false);
+                        setBankOpeningBalance(year?.bankOpeningBalance || 0);
+                      }}
+                      className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-3xl font-bold text-blue-600">
+                    ₹{bankOpeningBalance.toFixed(2)}
+                  </p>
+                  <button
+                    onClick={() => setEditingBankOpening(true)}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium transition-colors"
+                  >
+                    Edit
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Cash Opening Balance */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">
+                Cash Opening Balance
+              </h2>
+              {editingCashOpening ? (
+                <div className="space-y-4">
+                  <input
+                    type="number"
+                    value={cashOpeningBalance}
+                    onChange={(e) =>
+                      setCashOpeningBalance(parseFloat(e.target.value) || 0)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    placeholder="Enter cash opening balance"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleSaveBalance("cashOpening")}
+                      disabled={savingBalance}
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 font-medium transition-colors"
+                    >
+                      {savingBalance ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingCashOpening(false);
+                        setCashOpeningBalance(year?.cashOpeningBalance || 0);
                       }}
                       className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-medium transition-colors"
                     >
@@ -413,11 +500,11 @@ export default function CashbookPage() {
               ) : (
                 <div className="space-y-4">
                   <p className="text-3xl font-bold text-green-600">
-                    ₹{openingBalance.toFixed(2)}
+                    ₹{cashOpeningBalance.toFixed(2)}
                   </p>
                   <button
-                    onClick={() => setEditingOpening(true)}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium transition-colors"
+                    onClick={() => setEditingCashOpening(true)}
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium transition-colors"
                   >
                     Edit
                   </button>
@@ -438,7 +525,7 @@ export default function CashbookPage() {
                   Calculated as: Opening Balance + Income - Expenses
                 </p>
                 <p className="text-sm text-gray-500">
-                  = ₹{openingBalance.toFixed(2)} + ₹{totalIncome.toFixed(2)} - ₹
+                  = ₹{totalOpening.toFixed(2)} + ₹{totalIncome.toFixed(2)} - ₹
                   {totalExpense.toFixed(2)}
                 </p>
               </div>
@@ -563,7 +650,7 @@ export default function CashbookPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Opening Balance Row */}
+                  {/* Bank Opening Balance Row */}
                   <tr
                     style={{
                       backgroundColor: "#eff6ff",
@@ -578,7 +665,7 @@ export default function CashbookPage() {
                         color: "#000000",
                       }}
                     >
-                      Opening Balance
+                      Bank Opening Balance
                     </td>
                     <td
                       style={{
@@ -588,7 +675,36 @@ export default function CashbookPage() {
                         color: "#2563eb",
                       }}
                     >
-                      ₹{openingBalance.toFixed(2)}
+                      ₹{bankOpeningBalance.toFixed(2)}
+                    </td>
+                  </tr>
+
+                  {/* Cash Opening Balance Row */}
+                  <tr
+                    style={{
+                      backgroundColor: "#f0fdf4",
+                      borderBottom: "1px solid #e5e7eb",
+                    }}
+                  >
+                    <td
+                      colSpan={5}
+                      style={{
+                        padding: "12px",
+                        fontWeight: "600",
+                        color: "#000000",
+                      }}
+                    >
+                      Cash Opening Balance
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px",
+                        textAlign: "center",
+                        fontWeight: "600",
+                        color: "#16a34a",
+                      }}
+                    >
+                      ₹{cashOpeningBalance.toFixed(2)}
                     </td>
                   </tr>
 
@@ -777,7 +893,49 @@ export default function CashbookPage() {
                     margin: "0 0 8px 0",
                   }}
                 >
-                  Opening Balance
+                  Bank Opening Balance
+                </p>
+                <p
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "700",
+                    color: "#2563eb",
+                    margin: "0",
+                  }}
+                >
+                  ₹{bankOpeningBalance.toFixed(2)}
+                </p>
+              </div>
+              <div>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    color: "#4b5563",
+                    margin: "0 0 8px 0",
+                  }}
+                >
+                  Cash Opening Balance
+                </p>
+                <p
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "700",
+                    color: "#16a34a",
+                    margin: "0",
+                  }}
+                >
+                  ₹{cashOpeningBalance.toFixed(2)}
+                </p>
+              </div>
+              <div>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    color: "#4b5563",
+                    margin: "0 0 8px 0",
+                  }}
+                >
+                  Total Opening
                 </p>
                 <p
                   style={{
@@ -787,7 +945,7 @@ export default function CashbookPage() {
                     margin: "0",
                   }}
                 >
-                  ₹{openingBalance.toFixed(2)}
+                  ₹{(bankOpeningBalance + cashOpeningBalance).toFixed(2)}
                 </p>
               </div>
               <div>
