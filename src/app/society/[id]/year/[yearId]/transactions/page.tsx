@@ -69,8 +69,11 @@ export default function TransactionsPage() {
   // Edit/Delete Transaction State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [deletingTransactionId, setDeletingTransactionId] = useState<string | null>(null);
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
+  const [deletingTransactionId, setDeletingTransactionId] = useState<
+    string | null
+  >(null);
   const [editForm, setEditForm] = useState({
     date: "",
     receiptNumber: "",
@@ -424,21 +427,34 @@ export default function TransactionsPage() {
                               Receipt: {transaction.receiptNumber}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {transaction.paymentMethod.toUpperCase()} | {transaction.type}
+                              {transaction.paymentMethod.toUpperCase()} |{" "}
+                              {transaction.type}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
                             <button
                               title="Edit Transaction"
                               onClick={() => handleEditTransaction(transaction)}
-                              style={{ background: "none", border: "none", cursor: "pointer", fontSize: "18px" }}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                fontSize: "18px",
+                              }}
                             >
                               ✏️
                             </button>
                             <button
                               title="Delete Transaction"
-                              onClick={() => handleDeleteTransaction(transaction.id)}
-                              style={{ background: "none", border: "none", cursor: "pointer", fontSize: "18px" }}
+                              onClick={() =>
+                                handleDeleteTransaction(transaction.id)
+                              }
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                fontSize: "18px",
+                              }}
                             >
                               🗑️
                             </button>
@@ -503,14 +519,26 @@ export default function TransactionsPage() {
                             <button
                               title="Edit Transaction"
                               onClick={() => handleEditTransaction(transaction)}
-                              style={{ background: "none", border: "none", cursor: "pointer", fontSize: "18px" }}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                fontSize: "18px",
+                              }}
                             >
                               ✏️
                             </button>
                             <button
                               title="Delete Transaction"
-                              onClick={() => handleDeleteTransaction(transaction.id)}
-                              style={{ background: "none", border: "none", cursor: "pointer", fontSize: "18px" }}
+                              onClick={() =>
+                                handleDeleteTransaction(transaction.id)
+                              }
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                fontSize: "18px",
+                              }}
                             >
                               🗑️
                             </button>
@@ -785,7 +813,9 @@ export default function TransactionsPage() {
                 type="date"
                 required
                 value={editForm.date}
-                onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, date: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
             </div>
@@ -796,7 +826,9 @@ export default function TransactionsPage() {
               <input
                 type="text"
                 value={editForm.receiptNumber}
-                onChange={(e) => setEditForm({ ...editForm, receiptNumber: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, receiptNumber: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
             </div>
@@ -806,7 +838,11 @@ export default function TransactionsPage() {
               </label>
               <input
                 type="text"
-                value={editForm.transactionType === "income" ? editForm.memberName : editForm.reason}
+                value={
+                  editForm.transactionType === "income"
+                    ? editForm.memberName
+                    : editForm.reason
+                }
                 onChange={(e) => {
                   if (editForm.transactionType === "income") {
                     setEditForm({ ...editForm, memberName: e.target.value });
@@ -825,7 +861,9 @@ export default function TransactionsPage() {
                 type="number"
                 required
                 value={editForm.amount}
-                onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, amount: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
             </div>
@@ -835,7 +873,9 @@ export default function TransactionsPage() {
               </label>
               <select
                 value={editForm.paymentMethod}
-                onChange={(e) => setEditForm({ ...editForm, paymentMethod: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, paymentMethod: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               >
                 <option value="cash">Cash</option>
@@ -876,7 +916,10 @@ export default function TransactionsPage() {
           title="Delete Transaction"
         >
           <div className="space-y-4">
-            <p className="text-gray-700">Are you sure you want to delete this transaction? This action cannot be undone.</p>
+            <p className="text-gray-700">
+              Are you sure you want to delete this transaction? This action
+              cannot be undone.
+            </p>
             <div className="flex gap-3">
               <button
                 onClick={confirmDeleteTransaction}

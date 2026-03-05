@@ -856,13 +856,14 @@ export default function CashbookPage() {
             </div>
           </div>
 
-          {/* Download Button */}
+          {/* Download Button and Ledger Navigation */}
           <div
             style={{
               marginTop: "32px",
               display: "flex",
               justifyContent: "center",
               gap: "16px",
+              flexWrap: "wrap",
             }}
           >
             <button
@@ -916,6 +917,34 @@ export default function CashbookPage() {
               }}
             >
               � Download CSV
+            </button>
+            <button
+              onClick={() =>
+                router.push(`/society/${societyId}/year/${yearId}/ledger`)
+              }
+              style={{
+                padding: "12px 32px",
+                backgroundColor: "#7c3aed",
+                color: "#ffffff",
+                borderRadius: "8px",
+                fontWeight: "700",
+                fontSize: "16px",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+              onMouseEnter={(e) => {
+                (e.target as HTMLButtonElement).style.backgroundColor =
+                  "#6d28d9";
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLButtonElement).style.backgroundColor =
+                  "#7c3aed";
+              }}
+            >
+              📋 View Ledger
             </button>
           </div>
         </main>
