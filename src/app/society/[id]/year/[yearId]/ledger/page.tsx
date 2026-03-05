@@ -64,7 +64,8 @@ export default function LedgerPage() {
   >([]);
   const [loading, setLoading] = useState(true);
   const [selectedPerson, setSelectedPerson] = useState<string>("");
-  const [selectedTransactionHead, setSelectedTransactionHead] = useState<string>("");
+  const [selectedTransactionHead, setSelectedTransactionHead] =
+    useState<string>("");
   const [fetched, setFetched] = useState(false);
   const [personOpeningBalances, setPersonOpeningBalances] = useState<
     Map<string, number>
@@ -187,7 +188,7 @@ export default function LedgerPage() {
 
     // Filter transactions based on selected person or transaction head
     let filtered: Transaction[] = [];
-    
+
     if (selectedTransactionHead) {
       // Filter by transaction head
       filtered = allTransactions.filter((trans) => {
@@ -212,10 +213,14 @@ export default function LedgerPage() {
     setFetched(true);
   };
 
-  const getUniqueTransactionHeads = (): Array<{ head: string; type: "income" | "expense" }> => {
+  const getUniqueTransactionHeads = (): Array<{
+    head: string;
+    type: "income" | "expense";
+  }> => {
     const heads = new Set<string>();
-    const headWithType: Array<{ head: string; type: "income" | "expense" }> = [];
-    
+    const headWithType: Array<{ head: string; type: "income" | "expense" }> =
+      [];
+
     allTransactions.forEach((trans) => {
       if (trans.transactionType === "income" && trans.incomeType) {
         if (!heads.has(`income-${trans.incomeType}`)) {
@@ -229,7 +234,7 @@ export default function LedgerPage() {
         }
       }
     });
-    
+
     return headWithType.sort((a, b) => a.head.localeCompare(b.head));
   };
 
@@ -717,9 +722,7 @@ export default function LedgerPage() {
 
           {/* Filter and Fetch Section */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              Filter By
-            </h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Filter By</h3>
             <div className="flex flex-col gap-4">
               {/* Transaction Head Filter */}
               <div>
@@ -736,8 +739,12 @@ export default function LedgerPage() {
                 >
                   <option value="">-- Select transaction head --</option>
                   {getUniqueTransactionHeads().map((headData) => (
-                    <option key={`${headData.type}-${headData.head}`} value={headData.head}>
-                      {headData.head} ({headData.type === "income" ? "Income" : "Expense"})
+                    <option
+                      key={`${headData.type}-${headData.head}`}
+                      value={headData.head}
+                    >
+                      {headData.head} (
+                      {headData.type === "income" ? "Income" : "Expense"})
                     </option>
                   ))}
                 </select>
@@ -917,7 +924,10 @@ export default function LedgerPage() {
                   >
                     <div className="bg-gray-50 border-b border-gray-200 p-4">
                       <h3 className="text-xl font-bold text-gray-900">
-                        Ledger {selectedTransactionHead ? `- ${selectedTransactionHead}` : `- ${selectedPerson}`}
+                        Ledger{" "}
+                        {selectedTransactionHead
+                          ? `- ${selectedTransactionHead}`
+                          : `- ${selectedPerson}`}
                       </h3>
                     </div>
                     <div className="overflow-x-auto">

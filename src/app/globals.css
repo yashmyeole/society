@@ -49,6 +49,46 @@ button:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+/* Date input formatting to show dd/mm/yyyy */
+input[type="date"] {
+  position: relative;
+}
+
+/* Chrome, Edge, Safari, Opera */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  border-radius: 4px;
+  margin-right: 2px;
+  opacity: 0.6;
+  filter: invert(0.8);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+input[type="date"]::-webkit-outer-spin-button,
+input[type="date"]::-webkit-inner-spin-button {
+  display: none;
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Format the date display to dd/mm/yyyy */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="date"]::placeholder {
+  display: none !important;
+}
+
+/* Firefox */
+input[type="date"]::-moz-placeholder {
+  display: none !important;
+}
+
 button:active {
   transform: translateY(0px);
 }

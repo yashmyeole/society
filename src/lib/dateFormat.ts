@@ -8,3 +8,25 @@ export function formatDate(date: Date | number): string {
   const year = d.getFullYear();
   return `${day}/${month}/${year}`;
 }
+
+/**
+ * Convert dd/mm/yyyy string to YYYY-MM-DD format for HTML date input
+ */
+export function convertToDateInputFormat(ddmmyyyy: string): string {
+  if (!ddmmyyyy) return "";
+  const parts = ddmmyyyy.split("/");
+  if (parts.length !== 3) return "";
+  const [day, month, year] = parts;
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Convert YYYY-MM-DD format (from HTML date input) to dd/mm/yyyy string
+ */
+export function convertFromDateInputFormat(yyyymmdd: string): string {
+  if (!yyyymmdd) return "";
+  const parts = yyyymmdd.split("-");
+  if (parts.length !== 3) return "";
+  const [year, month, day] = parts;
+  return `${day}/${month}/${year}`;
+}

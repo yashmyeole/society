@@ -7,8 +7,13 @@ import { ref, child, get, push, set } from "firebase/database";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/Modal";
+import { DatePicker } from "@/components/DatePicker";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { formatDate } from "@/lib/dateFormat";
+import {
+  formatDate,
+  convertToDateInputFormat,
+  convertFromDateInputFormat,
+} from "@/lib/dateFormat";
 
 interface Member {
   id: string;
@@ -185,6 +190,14 @@ export default function TransactionsPage() {
       const transRef = ref(db, "transactions");
       const newTransRef = push(transRef);
 
+      // Parse date from dd/mm/yyyy format to timestamp
+      const dateParts = incomeForm.date.split("/");
+      const parsedDate = new Date(
+        parseInt(dateParts[2]),
+        parseInt(dateParts[1]) - 1,
+        parseInt(dateParts[0]),
+      );
+
       // Determine memberName and memberId based on income type
       let memberName = "";
       let memberId = "";
@@ -211,7 +224,7 @@ export default function TransactionsPage() {
       }
 
       await set(newTransRef, {
-        date: new Date(incomeForm.date).getTime(),
+        date: parsedDate.getTime(),
         receiptNumber: incomeForm.receiptNumber,
         memberName: memberName,
         memberId: memberId,
@@ -256,8 +269,16 @@ export default function TransactionsPage() {
       const transRef = ref(db, "transactions");
       const newTransRef = push(transRef);
 
+      // Parse date from dd/mm/yyyy format to timestamp
+      const dateParts = expenseForm.date.split("/");
+      const parsedDate = new Date(
+        parseInt(dateParts[2]),
+        parseInt(dateParts[1]) - 1,
+        parseInt(dateParts[0]),
+      );
+
       await set(newTransRef, {
-        date: new Date(expenseForm.date).getTime(),
+        date: parsedDate.getTime(),
         expenseType: expenseForm.expenseType,
         reason: expenseForm.reason,
         amount: parseFloat(expenseForm.amount),
@@ -321,7 +342,7 @@ export default function TransactionsPage() {
   const handleEditTransaction = (transaction: Transaction) => {
     setEditingTransaction(transaction);
     setEditForm({
-      date: new Date(transaction.date).toISOString().slice(0, 10),
+      date: formatDate(transaction.date),
       receiptNumber: transaction.receiptNumber || "",
       memberId: transaction.memberId || "",
       memberName: transaction.memberName || "",
@@ -342,10 +363,18 @@ export default function TransactionsPage() {
     if (!editingTransaction || !user) return;
     setSubmitting(true);
     try {
+      // Parse date from dd/mm/yyyy format to timestamp
+      const dateParts = editForm.date.split("/");
+      const parsedDate = new Date(
+        parseInt(dateParts[2]),
+        parseInt(dateParts[1]) - 1,
+        parseInt(dateParts[0]),
+      );
+
       const transRef = ref(db, `transactions/${editingTransaction.id}`);
       await set(transRef, {
         ...editingTransaction,
-        date: new Date(editForm.date).getTime(),
+        date: parsedDate.getTime(),
         receiptNumber: editForm.receiptNumber,
         memberId: editForm.memberId,
         memberName: editForm.memberName,
@@ -623,14 +652,13 @@ export default function TransactionsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Date of Transaction *
               </label>
-              <input
-                type="date"
+              <DatePicker
                 required
                 value={incomeForm.date}
-                onChange={(e) =>
-                  setIncomeForm({ ...incomeForm, date: e.target.value })
+                onChange={(ddmmyyyy) =>
+                  setIncomeForm({ ...incomeForm, date: ddmmyyyy })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="w-full"
               />
             </div>
 
@@ -670,7 +698,9 @@ export default function TransactionsPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="Member Contribution">Member Contribution</option>
-                <option value="Conveyance Deed Contribution">Conveyance Deed Contribution</option>
+                <option value="Conveyance Deed Contribution">
+                  Conveyance Deed Contribution
+                </option>
                 <option value="Bank Interest">Bank Interest</option>
                 <option value="Transfer Fee">Transfer Fee</option>
                 <option value="Entrance Fee">Entrance Fee</option>
@@ -682,7 +712,10 @@ export default function TransactionsPage() {
               incomeForm.incomeType === "Conveyance Deed Contribution") && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Member {incomeForm.incomeType === "Member Contribution" ? "*" : "(Optional)"}
+                  Member{" "}
+                  {incomeForm.incomeType === "Member Contribution"
+                    ? "*"
+                    : "(Optional)"}
                 </label>
                 <select
                   required
@@ -808,14 +841,13 @@ export default function TransactionsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Date of Transaction *
               </label>
-              <input
-                type="date"
+              <DatePicker
                 required
                 value={expenseForm.date}
-                onChange={(e) =>
-                  setExpenseForm({ ...expenseForm, date: e.target.value })
+                onChange={(ddmmyyyy) =>
+                  setExpenseForm({ ...expenseForm, date: ddmmyyyy })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="w-full"
               />
             </div>
 
@@ -964,14 +996,13 @@ export default function TransactionsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Date *
               </label>
-              <input
-                type="date"
+              <DatePicker
                 required
                 value={editForm.date}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, date: e.target.value })
+                onChange={(ddmmyyyy) =>
+                  setEditForm({ ...editForm, date: ddmmyyyy })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full"
               />
             </div>
             <div>
@@ -1063,8 +1094,10 @@ export default function TransactionsPage() {
                 editForm.incomeType === "Conveyance Deed Contribution") && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Member {editForm.incomeType === "Member Contribution" ? "*" : "(Optional)"}
-
+                    Member{" "}
+                    {editForm.incomeType === "Member Contribution"
+                      ? "*"
+                      : "(Optional)"}
                   </label>
                   <select
                     value={editForm.memberId}
