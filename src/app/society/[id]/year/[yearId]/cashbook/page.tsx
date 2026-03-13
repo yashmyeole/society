@@ -7,6 +7,7 @@ import { ref, get, set } from "firebase/database";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { HeaderActions } from "@/components/HeaderActions";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import * as XLSX from "xlsx";
@@ -668,25 +669,22 @@ export default function CashbookPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-100">
         <nav className="bg-blue-600 text-white p-4 shadow-md">
-          <div className="container mx-auto flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Cashbook - {society?.name}</h1>
-            <div className="flex gap-4">
-              <button
-                onClick={() => router.back()}
-                className="px-4 py-2 bg-blue-500 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                ← Back
-              </button>
-              <button
-                onClick={async () => {
-                  await signOut(auth);
-                  router.push("/");
-                }}
-                className="px-4 py-2 bg-red-600 rounded-md hover:bg-red-700 transition-colors"
-              >
-                Logout
-              </button>
-            </div>
+          <div className="container mx-auto flex justify-between items-center gap-3 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-bold wrap-break-word">Cashbook - {society?.name}</h1>
+            <HeaderActions
+              onLogout={async () => {
+                await signOut(auth);
+                router.push("/");
+              }}
+              actions={[
+                {
+                  id: "back",
+                  label: "Back",
+                  onClick: () => router.back(),
+                  variant: "primary",
+                },
+              ]}
+            />
           </div>
         </nav>
 
@@ -707,7 +705,7 @@ export default function CashbookPage() {
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <button
                       onClick={() => handleSaveBalance("bankOpening")}
                       disabled={savingBalance}
@@ -752,7 +750,7 @@ export default function CashbookPage() {
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <button
                       onClick={() => handleSaveBalance("cashOpening")}
                       disabled={savingBalance}
@@ -787,13 +785,13 @@ export default function CashbookPage() {
           {/* Cashbook Content for PDF */}
           <div id="cashbook-content">
             {/* Bank Section */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-8">
               <h2 className="text-2xl font-bold text-blue-700 mb-6">
                 Bank Transactions
               </h2>
 
               <div className="overflow-x-auto mb-6">
-                <table className="w-full border-collapse">
+                <table className="w-full min-w-190 border-collapse">
                   <thead>
                     <tr className="bg-blue-100">
                       <th className="border border-gray-300 px-4 py-2 text-left font-bold text-gray-800">
@@ -905,13 +903,13 @@ export default function CashbookPage() {
             </div>
 
             {/* Cash Section */}
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
               <h2 className="text-2xl font-bold text-green-800 mb-6">
                 Cash Transactions
               </h2>
 
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
+                <table className="w-full min-w-190 border-collapse">
                   <thead>
                     <tr className="bg-green-100">
                       <th className="border border-gray-300 px-4 py-2 text-left font-bold text-gray-800">
@@ -1090,16 +1088,16 @@ export default function CashbookPage() {
           </div>
 
           {/* Download Buttons */}
-          <div className="flex justify-center gap-4 mt-8 flex-wrap">
+          <div className="flex justify-center gap-3 mt-8 flex-wrap">
             <button
               onClick={handleDownloadPDF}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-sm"
             >
               📄 Download PDF
             </button>
             <button
               onClick={handleDownloadXLSX}
-              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
+              className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold text-sm"
             >
               📊 Download XLSX
             </button>
@@ -1107,7 +1105,7 @@ export default function CashbookPage() {
               onClick={() =>
                 router.push(`/society/${societyId}/year/${yearId}/ledger`)
               }
-              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold"
+              className="px-6 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold text-sm"
             >
               📋 View Ledger
             </button>

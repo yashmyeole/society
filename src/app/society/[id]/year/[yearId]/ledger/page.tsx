@@ -7,6 +7,7 @@ import { ref, get, set } from "firebase/database";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { HeaderActions } from "@/components/HeaderActions";
 import ExcelJS, { Alignment } from "exceljs";
 import { formatDate } from "@/lib/dateFormat";
 import { saveAs } from "file-saver";
@@ -688,40 +689,37 @@ export default function LedgerPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-100">
         <nav className="bg-blue-600 text-white p-4 shadow-md">
-          <div className="container mx-auto flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Ledger Report</h1>
-            <div className="flex gap-4">
-              <button
-                onClick={() => router.back()}
-                className="px-4 py-2 bg-blue-500 rounded-md hover:bg-blue-700 transition-colors font-medium"
-              >
-                ← Back
-              </button>
-              <button
-                onClick={async () => {
-                  await signOut(auth);
-                  router.push("/");
-                }}
-                className="px-4 py-2 bg-red-600 rounded-md hover:bg-red-700 transition-colors font-medium"
-              >
-                Logout
-              </button>
-            </div>
+          <div className="container mx-auto flex justify-between items-center gap-3 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-bold">Ledger Report</h1>
+            <HeaderActions
+              onLogout={async () => {
+                await signOut(auth);
+                router.push("/");
+              }}
+              actions={[
+                {
+                  id: "back",
+                  label: "Back",
+                  onClick: () => router.back(),
+                  variant: "primary",
+                },
+              ]}
+            />
           </div>
         </nav>
 
         <main className="container mx-auto p-6 max-w-5xl">
           {/* Header Info */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               {society?.name}
             </h2>
-            <p className="text-gray-600 mb-1">Address: {society?.address}</p>
+            <p className="text-gray-600 mb-1 wrap-break-word">Address: {society?.address}</p>
             <p className="text-gray-600">Financial Year: {year?.year}</p>
           </div>
 
           {/* Filter and Fetch Section */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Filter By</h3>
             <div className="flex flex-col gap-4">
               {/* Transaction Head Filter */}
@@ -797,7 +795,7 @@ export default function LedgerPage() {
                         Opening Balance for {selectedPerson}
                       </p>
                       {editingOpeningBalance === selectedPerson ? (
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <input
                             type="number"
                             step="0.01"
@@ -823,7 +821,7 @@ export default function LedgerPage() {
                           </button>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                           <p className="text-2xl font-bold text-blue-600">
                             ₹{getOpeningBalance().toFixed(2)}
                           </p>
@@ -870,7 +868,7 @@ export default function LedgerPage() {
               ) : (
                 <>
                   {/* Summary Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
                     <div className="bg-white rounded-lg shadow-md p-6">
                       <h3 className="text-sm font-semibold text-gray-600 mb-2">
                         Opening Balance
@@ -931,7 +929,7 @@ export default function LedgerPage() {
                       </h3>
                     </div>
                     <div className="overflow-x-auto">
-                      <table className="w-full">
+                      <table className="w-full min-w-175">
                         <thead className="bg-gray-100 border-b border-gray-200">
                           <tr>
                             <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
@@ -1027,7 +1025,7 @@ export default function LedgerPage() {
                   <div className="flex justify-center gap-4">
                     <button
                       onClick={downloadExcel}
-                      className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold transition-colors flex items-center gap-2"
+                      className="px-6 py-2.5 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold transition-colors flex items-center justify-center gap-2 text-sm"
                     >
                       📊 Download Excel
                     </button>

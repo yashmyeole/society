@@ -22,10 +22,10 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       />
 
       {/* Modal Container */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 pointer-events-none">
         {/* Modal Content */}
-        <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full pointer-events-auto">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full pointer-events-auto max-h-[90vh] overflow-hidden">
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg leading-6 font-medium text-gray-900">
                 {title}

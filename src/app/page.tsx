@@ -26,27 +26,27 @@ export default function RootPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white shadow-md">
+      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 py-3 sm:h-16 sm:py-0">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-linear-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">H</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">
+              <span className="text-base sm:text-xl font-bold text-gray-900 leading-tight">
                 Housing Society Manager
               </span>
             </div>
-            <div className="flex gap-4">
+            <div className="flex w-full sm:w-auto gap-2 sm:gap-4">
               <Link
                 href="/login"
-                className="px-6 py-2 text-gray-700 font-medium hover:text-blue-600 transition"
+                className="flex-1 sm:flex-none text-center px-4 sm:px-6 py-2 text-gray-700 font-medium hover:text-blue-600 transition rounded-lg"
               >
                 Sign In
               </Link>
               <Link
                 href="/signup"
-                className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
+                className="flex-1 sm:flex-none text-center px-4 sm:px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
               >
                 Get Started
               </Link>
@@ -56,28 +56,28 @@ export default function RootPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="bg-linear-to-br from-blue-600 via-blue-500 to-blue-800 text-white py-20 px-4">
+      <section className="bg-linear-to-br from-blue-600 via-blue-500 to-blue-800 text-white py-14 sm:py-20 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 leading-tight">
                 Manage Your Housing Society with Ease
               </h1>
-              <p className="text-lg text-blue-100 mb-8">
+              <p className="text-base sm:text-lg text-blue-100 mb-6 sm:mb-8">
                 A complete financial management solution for housing societies.
                 Track income, manage expenses, and generate detailed reports—all
                 in one platform.
               </p>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Link
                   href="/signup"
-                  className="px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition shadow-lg"
+                  className="text-center px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition shadow-lg"
                 >
                   Start Free Trial
                 </Link>
                 <Link
                   href="/login"
-                  className="px-8 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-blue-700 transition"
+                  className="text-center px-8 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-blue-700 transition"
                 >
                   Sign In
                 </Link>
@@ -100,13 +100,13 @@ export default function RootPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 bg-gray-50">
+      <section className="py-14 sm:py-20 px-4 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               Powerful Features
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-base sm:text-xl text-gray-600">
               Everything you need to manage housing society finances
             </p>
           </div>
@@ -224,9 +224,9 @@ export default function RootPage() {
       </section>
 
       {/* Key Capabilities Section */}
-      <section className="py-20 px-4 bg-white">
+      <section className="py-14 sm:py-20 px-4 bg-white">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold text-gray-900 mb-16 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-12 sm:mb-16 text-center">
             What You Can Do
           </h2>
 
@@ -351,13 +351,13 @@ export default function RootPage() {
       </section>
 
       {/* Tech Stack Section */}
-      <section className="py-20 px-4 bg-gray-50">
+      <section className="py-14 sm:py-20 px-4 bg-gray-50">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold text-gray-900 mb-16 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-12 sm:mb-16 text-center">
             Built with Modern Tech
           </h2>
 
-          <div className="grid md:grid-cols-4 gap-8 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 text-center">
             <div className="bg-white rounded-lg p-6 shadow-md">
               <div className="text-5xl mb-4">⚛️</div>
               <h3 className="text-lg font-semibold text-gray-900">Next.js</h3>
@@ -394,9 +394,9 @@ export default function RootPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-blue-600 text-white py-16 px-4">
+      <section className="bg-blue-600 text-white py-14 sm:py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold mb-6">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-6">
             Ready to Simplify Your Society Management?
           </h2>
           <p className="text-lg text-blue-100 mb-8">
@@ -423,7 +423,7 @@ export default function RootPage() {
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 py-12 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">

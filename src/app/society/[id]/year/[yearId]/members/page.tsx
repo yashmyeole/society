@@ -7,6 +7,7 @@ import { ref, child, get, push, set } from "firebase/database";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/Modal";
+import { HeaderActions } from "@/components/HeaderActions";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { formatDate } from "@/lib/dateFormat";
 
@@ -137,7 +138,7 @@ export default function MembersPage() {
         {/* Header */}
         <header className="bg-white shadow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start gap-3 flex-wrap">
               <div>
                 <button
                   onClick={() =>
@@ -149,30 +150,25 @@ export default function MembersPage() {
                 >
                   ← Back
                 </button>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                   {society?.name}
                 </h1>
                 <p className="text-gray-600">Members Management</p>
               </div>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Logout
-              </button>
+              <HeaderActions onLogout={handleLogout} />
             </div>
           </div>
         </header>
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
               Society Members
             </h2>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
             >
               + Add Member
             </button>
@@ -279,7 +275,7 @@ export default function MembersPage() {
               />
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 type="submit"
                 disabled={submitting}

@@ -18,6 +18,7 @@ import {
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/Modal";
+import { HeaderActions } from "@/components/HeaderActions";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 interface Society {
@@ -212,26 +213,21 @@ export default function HomePage() {
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <header className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center gap-3 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               Housing Society Manager
             </h1>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Logout
-            </button>
+            <HeaderActions onLogout={handleLogout} />
           </div>
         </header>
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">My Societies</h2>
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">My Societies</h2>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
             >
               + Create Society
             </button>
@@ -276,7 +272,7 @@ export default function HomePage() {
                       </p>
                     </div>
                   </div>
-                  <div className="bg-gray-50 px-6 py-3 flex gap-2 border-t border-gray-200">
+                  <div className="bg-gray-50 px-6 py-3 flex flex-col sm:flex-row gap-2 border-t border-gray-200">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -387,7 +383,7 @@ export default function HomePage() {
               />
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 type="submit"
                 disabled={submitting}
@@ -502,7 +498,7 @@ export default function HomePage() {
               />
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 type="submit"
                 disabled={submitting}
@@ -546,7 +542,7 @@ export default function HomePage() {
               Are you sure you want to delete this society? This action cannot
               be undone.
             </p>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={confirmDeleteSociety}
                 disabled={submitting}

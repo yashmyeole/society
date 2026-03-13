@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/Modal";
 import { DatePicker } from "@/components/DatePicker";
+import { HeaderActions } from "@/components/HeaderActions";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import {
   formatDate,
@@ -427,7 +428,7 @@ export default function TransactionsPage() {
         {/* Header */}
         <header className="bg-white shadow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start gap-3 flex-wrap">
               <div>
                 <button
                   onClick={() => router.push(`/society/${societyId}`)}
@@ -435,27 +436,23 @@ export default function TransactionsPage() {
                 >
                   ← Back
                 </button>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                   {society?.name}
                 </h1>
                 <p className="text-gray-600">FY {year?.year}</p>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() =>
-                    router.push(`/society/${societyId}/year/${yearId}/members`)
-                  }
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                >
-                  Members
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  Logout
-                </button>
-              </div>
+              <HeaderActions
+                onLogout={handleLogout}
+                actions={[
+                  {
+                    id: "members",
+                    label: "Members",
+                    onClick: () =>
+                      router.push(`/society/${societyId}/year/${yearId}/members`),
+                    variant: "primary",
+                  },
+                ]}
+              />
             </div>
           </div>
         </header>
@@ -470,11 +467,11 @@ export default function TransactionsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Income Section */}
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold text-gray-900">Income</h2>
+                <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Income</h2>
                   <button
                     onClick={() => setIsIncomeModalOpen(true)}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
                   >
                     + Add Income
                   </button>
@@ -500,7 +497,7 @@ export default function TransactionsPage() {
                         key={transaction.id}
                         className="bg-white rounded-lg shadow-md p-4"
                       >
-                        <div className="flex justify-between items-start">
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
                           <div>
                             <p className="font-semibold text-gray-900">
                               {transaction.memberName}
@@ -516,7 +513,7 @@ export default function TransactionsPage() {
                               {transaction.type}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-between sm:justify-start gap-2">
                             <button
                               title="Edit Transaction"
                               onClick={() => handleEditTransaction(transaction)}
@@ -556,13 +553,13 @@ export default function TransactionsPage() {
 
               {/* Expense Section */}
               <div>
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
                   <h2 className="text-2xl font-bold text-gray-900">
                     Expenditure
                   </h2>
                   <button
                     onClick={() => setIsExpenseModalOpen(true)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold"
                   >
                     + Add Expense
                   </button>
@@ -588,7 +585,7 @@ export default function TransactionsPage() {
                         key={transaction.id}
                         className="bg-white rounded-lg shadow-md p-4"
                       >
-                        <div className="flex justify-between items-start">
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
                           <div>
                             <p className="font-semibold text-gray-900">
                               {transaction.reason}
@@ -600,7 +597,7 @@ export default function TransactionsPage() {
                               {transaction.paymentMethod.toUpperCase()}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-between sm:justify-start gap-2">
                             <button
                               title="Edit Transaction"
                               onClick={() => handleEditTransaction(transaction)}
@@ -811,7 +808,7 @@ export default function TransactionsPage() {
               />
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 type="submit"
                 disabled={submitting}
@@ -963,7 +960,7 @@ export default function TransactionsPage() {
               />
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 type="submit"
                 disabled={submitting}
@@ -1188,7 +1185,7 @@ export default function TransactionsPage() {
                 />
               </div>
             )}
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 type="submit"
                 disabled={submitting}
@@ -1225,7 +1222,7 @@ export default function TransactionsPage() {
               Are you sure you want to delete this transaction? This action
               cannot be undone.
             </p>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={confirmDeleteTransaction}
                 disabled={submitting}

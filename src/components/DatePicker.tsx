@@ -200,7 +200,7 @@ export function DatePicker({
 
       {/* Calendar Popup */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-50 p-4 w-72">
+        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-50 p-3 sm:p-4 w-full min-w-65 sm:w-72">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <button
@@ -270,8 +270,8 @@ export function DatePicker({
                 type="button"
                 onClick={() => day !== null && handleSelectDate(day)}
                 disabled={day === null}
-                className={`
-                  w-8 h-8 rounded text-sm font-medium transition-colors
+                  className={`
+                    h-9 w-full rounded text-sm font-medium transition-colors
                   ${
                     day === null
                       ? "text-gray-200 cursor-default"
