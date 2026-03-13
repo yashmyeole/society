@@ -448,7 +448,9 @@ export default function TransactionsPage() {
                     id: "members",
                     label: "Members",
                     onClick: () =>
-                      router.push(`/society/${societyId}/year/${yearId}/members`),
+                      router.push(
+                        `/society/${societyId}/year/${yearId}/members`,
+                      ),
                     variant: "primary",
                   },
                 ]}
@@ -468,7 +470,9 @@ export default function TransactionsPage() {
               {/* Income Section */}
               <div>
                 <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Income</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                    Income
+                  </h2>
                   <button
                     onClick={() => setIsIncomeModalOpen(true)}
                     className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"

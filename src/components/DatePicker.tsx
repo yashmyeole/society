@@ -270,7 +270,7 @@ export function DatePicker({
                 type="button"
                 onClick={() => day !== null && handleSelectDate(day)}
                 disabled={day === null}
-                  className={`
+                className={`
                     h-9 w-full rounded text-sm font-medium transition-colors
                   ${
                     day === null

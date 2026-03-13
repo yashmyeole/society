@@ -670,7 +670,9 @@ export default function CashbookPage() {
       <div className="min-h-screen bg-gray-100">
         <nav className="bg-blue-600 text-white p-4 shadow-md">
           <div className="container mx-auto flex justify-between items-center gap-3 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold wrap-break-word">Cashbook - {society?.name}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold wrap-break-word">
+              Cashbook - {society?.name}
+            </h1>
             <HeaderActions
               onLogout={async () => {
                 await signOut(auth);

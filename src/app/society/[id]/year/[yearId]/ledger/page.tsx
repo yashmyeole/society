@@ -714,7 +714,9 @@ export default function LedgerPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               {society?.name}
             </h2>
-            <p className="text-gray-600 mb-1 wrap-break-word">Address: {society?.address}</p>
+            <p className="text-gray-600 mb-1 wrap-break-word">
+              Address: {society?.address}
+            </p>
             <p className="text-gray-600">Financial Year: {year?.year}</p>
           </div>
 

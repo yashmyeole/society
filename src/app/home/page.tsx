@@ -224,7 +224,9 @@ export default function HomePage() {
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">My Societies</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              My Societies
+            </h2>
             <button
               onClick={() => setIsModalOpen(true)}
               className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"

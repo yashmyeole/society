@@ -134,7 +134,9 @@ export default function SocietyPage() {
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                 {society?.name}
               </h1>
-              <p className="text-gray-600 wrap-break-word">{society?.address}</p>
+              <p className="text-gray-600 wrap-break-word">
+                {society?.address}
+              </p>
             </div>
             <HeaderActions onLogout={handleLogout} />
           </div>
