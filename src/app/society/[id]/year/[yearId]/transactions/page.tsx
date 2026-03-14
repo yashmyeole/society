@@ -424,9 +424,9 @@ export default function TransactionsPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <div className="app-shell">
         {/* Header */}
-        <header className="bg-white shadow">
+        <header className="app-header sticky top-0 z-30">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex justify-between items-start gap-3 flex-wrap">
               <div>
@@ -475,13 +475,13 @@ export default function TransactionsPage() {
                   </h2>
                   <button
                     onClick={() => setIsIncomeModalOpen(true)}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
+                    className="btn-success px-4 py-2 text-white rounded-lg transition-colors text-sm font-semibold"
                   >
                     + Add Income
                   </button>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+                <div className="kpi-card p-4 mb-4">
                   <p className="text-gray-600">Total Income</p>
                   <p className="text-3xl font-bold text-green-600">
                     ₹{totalIncome.toFixed(2)}
@@ -490,17 +490,14 @@ export default function TransactionsPage() {
 
                 <div className="space-y-2">
                   {incomeTransactions.length === 0 ? (
-                    <div className="text-center py-8 bg-white rounded-lg shadow">
+                    <div className="text-center py-8 surface-card">
                       <p className="text-gray-500">
                         No income transactions yet
                       </p>
                     </div>
                   ) : (
                     incomeTransactions.map((transaction) => (
-                      <div
-                        key={transaction.id}
-                        className="bg-white rounded-lg shadow-md p-4"
-                      >
+                      <div key={transaction.id} className="surface-card p-4">
                         <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
                           <div>
                             <p className="font-semibold text-gray-900">
@@ -521,28 +518,18 @@ export default function TransactionsPage() {
                             <button
                               title="Edit Transaction"
                               onClick={() => handleEditTransaction(transaction)}
-                              style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                fontSize: "18px",
-                              }}
+                              className="h-8 w-8 rounded-md bg-slate-100 hover:bg-slate-200 flex items-center justify-center"
                             >
-                              ✏️
+                              <span aria-hidden="true">✏️</span>
                             </button>
                             <button
                               title="Delete Transaction"
                               onClick={() =>
                                 handleDeleteTransaction(transaction.id)
                               }
-                              style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                fontSize: "18px",
-                              }}
+                              className="h-8 w-8 rounded-md bg-red-50 hover:bg-red-100 flex items-center justify-center"
                             >
-                              🗑️
+                              <span aria-hidden="true">🗑️</span>
                             </button>
                             <p className="font-bold text-green-600">
                               +₹{transaction.amount.toFixed(2)}
@@ -563,13 +550,13 @@ export default function TransactionsPage() {
                   </h2>
                   <button
                     onClick={() => setIsExpenseModalOpen(true)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold"
+                    className="btn-danger px-4 py-2 text-white rounded-lg transition-colors text-sm font-semibold"
                   >
                     + Add Expense
                   </button>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+                <div className="kpi-card p-4 mb-4">
                   <p className="text-gray-600">Total Expenditure</p>
                   <p className="text-3xl font-bold text-red-600">
                     ₹{totalExpense.toFixed(2)}
@@ -578,17 +565,14 @@ export default function TransactionsPage() {
 
                 <div className="space-y-2">
                   {expenseTransactions.length === 0 ? (
-                    <div className="text-center py-8 bg-white rounded-lg shadow">
+                    <div className="text-center py-8 surface-card">
                       <p className="text-gray-500">
                         No expense transactions yet
                       </p>
                     </div>
                   ) : (
                     expenseTransactions.map((transaction) => (
-                      <div
-                        key={transaction.id}
-                        className="bg-white rounded-lg shadow-md p-4"
-                      >
+                      <div key={transaction.id} className="surface-card p-4">
                         <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
                           <div>
                             <p className="font-semibold text-gray-900">
@@ -605,28 +589,18 @@ export default function TransactionsPage() {
                             <button
                               title="Edit Transaction"
                               onClick={() => handleEditTransaction(transaction)}
-                              style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                fontSize: "18px",
-                              }}
+                              className="h-8 w-8 rounded-md bg-slate-100 hover:bg-slate-200 flex items-center justify-center"
                             >
-                              ✏️
+                              <span aria-hidden="true">✏️</span>
                             </button>
                             <button
                               title="Delete Transaction"
                               onClick={() =>
                                 handleDeleteTransaction(transaction.id)
                               }
-                              style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                fontSize: "18px",
-                              }}
+                              className="h-8 w-8 rounded-md bg-red-50 hover:bg-red-100 flex items-center justify-center"
                             >
-                              🗑️
+                              <span aria-hidden="true">🗑️</span>
                             </button>
                             <p className="font-bold text-red-600">
                               -₹{transaction.amount.toFixed(2)}

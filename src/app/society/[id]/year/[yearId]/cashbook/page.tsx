@@ -667,10 +667,10 @@ export default function CashbookPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-100">
-        <nav className="bg-blue-600 text-white p-4 shadow-md">
+      <div className="app-shell">
+        <nav className="app-header sticky top-0 z-30 p-4">
           <div className="container mx-auto flex justify-between items-center gap-3 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold wrap-break-word">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 wrap-break-word">
               Cashbook - {society?.name}
             </h1>
             <HeaderActions
@@ -693,7 +693,7 @@ export default function CashbookPage() {
         <main className="container mx-auto px-4 py-8 max-w-7xl">
           {/* Opening Balances */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="surface-card p-6">
               <h2 className="text-lg font-bold mb-4 text-gray-800">
                 Bank Opening Balance
               </h2>
@@ -711,13 +711,13 @@ export default function CashbookPage() {
                     <button
                       onClick={() => handleSaveBalance("bankOpening")}
                       disabled={savingBalance}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                      className="flex-1 px-4 py-2 btn-primary text-white rounded-md"
                     >
                       {savingBalance ? "Saving..." : "Save"}
                     </button>
                     <button
                       onClick={() => setEditingBankOpening(false)}
-                      className="flex-1 px-4 py-2 bg-gray-300 rounded-md"
+                      className="flex-1 px-4 py-2 btn-neutral rounded-md"
                     >
                       Cancel
                     </button>
@@ -730,7 +730,7 @@ export default function CashbookPage() {
                   </p>
                   <button
                     onClick={() => setEditingBankOpening(true)}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    className="w-full px-4 py-2 btn-primary text-white rounded-md"
                   >
                     Edit
                   </button>
@@ -738,7 +738,7 @@ export default function CashbookPage() {
               )}
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="surface-card p-6">
               <h2 className="text-lg font-bold mb-4 text-gray-800">
                 Cash Opening Balance
               </h2>
@@ -756,13 +756,13 @@ export default function CashbookPage() {
                     <button
                       onClick={() => handleSaveBalance("cashOpening")}
                       disabled={savingBalance}
-                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                      className="flex-1 px-4 py-2 btn-success text-white rounded-md"
                     >
                       {savingBalance ? "Saving..." : "Save"}
                     </button>
                     <button
                       onClick={() => setEditingCashOpening(false)}
-                      className="flex-1 px-4 py-2 bg-gray-300 rounded-md"
+                      className="flex-1 px-4 py-2 btn-neutral rounded-md"
                     >
                       Cancel
                     </button>
@@ -775,7 +775,7 @@ export default function CashbookPage() {
                   </p>
                   <button
                     onClick={() => setEditingCashOpening(true)}
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    className="w-full px-4 py-2 btn-success text-white rounded-md"
                   >
                     Edit
                   </button>
@@ -787,7 +787,7 @@ export default function CashbookPage() {
           {/* Cashbook Content for PDF */}
           <div id="cashbook-content">
             {/* Bank Section */}
-            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-8">
+            <div className="surface-card p-4 sm:p-6 mb-8">
               <h2 className="text-2xl font-bold text-blue-700 mb-6">
                 Bank Transactions
               </h2>
@@ -905,7 +905,7 @@ export default function CashbookPage() {
             </div>
 
             {/* Cash Section */}
-            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+            <div className="surface-card p-4 sm:p-6">
               <h2 className="text-2xl font-bold text-green-800 mb-6">
                 Cash Transactions
               </h2>
@@ -1025,7 +1025,7 @@ export default function CashbookPage() {
 
           {/* Summary */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-            <div className="bg-blue-50 rounded-lg p-6">
+            <div className="surface-card-soft p-6">
               <h3 className="text-lg font-bold text-blue-800 mb-4">
                 Bank Summary
               </h3>
@@ -1045,7 +1045,7 @@ export default function CashbookPage() {
               </div>
             </div>
 
-            <div className="bg-green-50 rounded-lg p-6">
+            <div className="surface-card-soft p-6">
               <h3 className="text-lg font-bold text-green-800 mb-4">
                 Cash Summary
               </h3>
@@ -1065,7 +1065,7 @@ export default function CashbookPage() {
               </div>
             </div>
 
-            <div className="bg-gray-100 rounded-lg p-6">
+            <div className="surface-card-soft p-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4">
                 Total Summary
               </h3>
@@ -1093,13 +1093,13 @@ export default function CashbookPage() {
           <div className="flex justify-center gap-3 mt-8 flex-wrap">
             <button
               onClick={handleDownloadPDF}
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-sm"
+              className="btn-primary px-6 py-2.5 text-white rounded-lg font-semibold text-sm"
             >
               📄 Download PDF
             </button>
             <button
               onClick={handleDownloadXLSX}
-              className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold text-sm"
+              className="btn-success px-6 py-2.5 text-white rounded-lg font-semibold text-sm"
             >
               📊 Download XLSX
             </button>
@@ -1107,7 +1107,7 @@ export default function CashbookPage() {
               onClick={() =>
                 router.push(`/society/${societyId}/year/${yearId}/ledger`)
               }
-              className="px-6 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold text-sm"
+              className="px-6 py-2.5 bg-violet-600 text-white rounded-lg hover:bg-violet-700 font-semibold text-sm"
             >
               📋 View Ledger
             </button>

@@ -1,8 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f3f5fb;
+  --foreground: #121a2d;
+  --surface: #ffffff;
+  --surface-soft: #f8faff;
+  --line: #d8e1f2;
+  --header-bg: rgba(255, 255, 255, 0.88);
+  --input-bg: #ffffff;
+  --input-text: #111827;
+  --input-placeholder: #6b7280;
+  --brand: #2f67f6;
+  --brand-strong: #1f4fcb;
 }
 
 @theme inline {
@@ -14,15 +23,24 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Keep the app readable in OS dark mode until page-level dark tokens are fully implemented. */
+    --background: #f3f5fb;
+    --foreground: #121a2d;
+    --surface: #ffffff;
+    --surface-soft: #f8faff;
+    --line: #d8e1f2;
+    --header-bg: rgba(255, 255, 255, 0.88);
+    --input-bg: #ffffff;
+    --input-text: #111827;
+    --input-placeholder: #6b7280;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-manrope), "Manrope", "DM Sans", "Segoe UI", sans-serif;
   overflow-x: hidden;
 }
 
@@ -42,25 +60,29 @@ canvas {
 input,
 textarea,
 select {
-  color: #111827 !important;
-  background-color: #fff !important;
+  color: var(--input-text) !important;
+  background-color: var(--input-bg) !important;
 }
 input::placeholder,
 textarea::placeholder {
-  color: #6b7280 !important;
+  color: var(--input-placeholder) !important;
   opacity: 1;
 }
 
 /* Global button cursor effect */
 button {
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    opacity 0.18s ease,
+    filter 0.18s ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
   button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    filter: brightness(0.98);
   }
 }
 
@@ -106,6 +128,93 @@ input[type="date"]::-moz-placeholder {
 
 button:active {
   transform: translateY(0px);
+}
+
+.app-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 100% 0%, #d9e7ff 0%, transparent 34%),
+    radial-gradient(circle at 0% 100%, #e8efff 0%, transparent 40%),
+    var(--background);
+}
+
+.app-header {
+  background: var(--header-bg);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(25, 48, 110, 0.06);
+}
+
+.surface-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  box-shadow: 0 10px 28px rgba(22, 42, 96, 0.08);
+}
+
+.surface-card-soft {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+}
+
+.ui-input {
+  border: 1px solid #c8d4ee !important;
+  border-radius: 0.7rem !important;
+  background: #fff !important;
+}
+
+.ui-input:focus {
+  outline: none;
+  border-color: #5b84f6 !important;
+  box-shadow: 0 0 0 3px rgba(47, 103, 246, 0.14);
+}
+
+.btn-primary,
+.btn-success,
+.btn-danger,
+.btn-neutral,
+.btn-ghost {
+  border-radius: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.btn-primary {
+  background: linear-gradient(
+    140deg,
+    var(--brand) 0%,
+    var(--brand-strong) 100%
+  );
+  color: #fff;
+}
+
+.btn-success {
+  background: linear-gradient(140deg, #0e9f6e 0%, #0b875f 100%);
+  color: #fff;
+}
+
+.btn-danger {
+  background: linear-gradient(140deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+}
+
+.btn-neutral {
+  background: #e8edf9;
+  color: #1f2b4a;
+  border: 1px solid #cfdaf2;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #2f67f6;
+}
+
+.kpi-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  box-shadow: 0 12px 26px rgba(22, 42, 96, 0.06);
 }
 
 @media (max-width: 640px) {

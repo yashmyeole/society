@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
+import { Manrope } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Housing Society Manager",
@@ -14,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
+      <body className={manrope.variable}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

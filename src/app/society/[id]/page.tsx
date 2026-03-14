@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { ref, child, get, push, set } from "firebase/database";
+import { ref, get, push, set } from "firebase/database";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/Modal";
@@ -21,6 +21,13 @@ interface Society {
   id: string;
   name: string;
   address: string;
+}
+
+interface FinancialYearRecord {
+  year: string;
+  societyId: string;
+  userId: string;
+  createdAt?: number;
 }
 
 export default function SocietyPage() {
@@ -62,12 +69,16 @@ export default function SocietyPage() {
         const allYears = yearsSnapshot.val();
         const userYears: FinancialYear[] = [];
 
-        Object.entries(allYears).forEach(([key, value]: [string, any]) => {
-          if (value.societyId === societyId && value.userId === user.uid) {
+        Object.entries(allYears).forEach(([key, value]) => {
+          const yearValue = value as FinancialYearRecord;
+          if (
+            yearValue.societyId === societyId &&
+            yearValue.userId === user.uid
+          ) {
             userYears.push({
               id: key,
-              ...value,
-              createdAt: value.createdAt || Date.now(),
+              year: yearValue.year,
+              createdAt: yearValue.createdAt || Date.now(),
             });
           }
         });
@@ -120,9 +131,9 @@ export default function SocietyPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <div className="app-shell">
         {/* Header */}
-        <header className="bg-white shadow">
+        <header className="app-header sticky top-0 z-30">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center gap-3 flex-wrap">
             <div>
               <button
@@ -150,7 +161,7 @@ export default function SocietyPage() {
             </h2>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
+              className="btn-primary px-5 py-2.5 text-white transition-colors text-sm"
             >
               + Add Report
             </button>
@@ -161,7 +172,7 @@ export default function SocietyPage() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           ) : years.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-lg shadow">
+            <div className="text-center py-12 surface-card">
               <p className="text-gray-500 text-lg">
                 No financial years yet. Add your first report!
               </p>
@@ -171,7 +182,7 @@ export default function SocietyPage() {
               {years.map((fy) => (
                 <div
                   key={fy.id}
-                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                  className="surface-card overflow-hidden hover:shadow-xl transition-shadow"
                 >
                   <div
                     onClick={() =>
@@ -188,14 +199,14 @@ export default function SocietyPage() {
                       Created: {formatDate(fy.createdAt)}
                     </p>
                   </div>
-                  <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="px-6 py-3 bg-slate-50/60 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <button
                       onClick={() =>
                         router.push(
                           `/society/${societyId}/year/${fy.id}/transactions`,
                         )
                       }
-                      className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors font-medium"
+                      className="flex-1 px-3 py-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm transition-colors font-semibold hover:bg-blue-100"
                     >
                       Transactions
                     </button>
@@ -205,7 +216,7 @@ export default function SocietyPage() {
                           `/society/${societyId}/year/${fy.id}/cashbook`,
                         )
                       }
-                      className="flex-1 px-3 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors font-medium"
+                      className="flex-1 px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm transition-colors font-semibold hover:bg-emerald-100"
                     >
                       Cashbook
                     </button>
@@ -215,7 +226,7 @@ export default function SocietyPage() {
                           `/society/${societyId}/year/${fy.id}/ledger`,
                         )
                       }
-                      className="flex-1 px-3 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 transition-colors font-medium"
+                      className="flex-1 px-3 py-2 rounded-lg border border-violet-200 bg-violet-50 text-violet-700 text-sm transition-colors font-semibold hover:bg-violet-100"
                     >
                       Ledger
                     </button>

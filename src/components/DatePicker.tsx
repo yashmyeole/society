@@ -170,7 +170,7 @@ export function DatePicker({
         }}
         onFocus={() => setIsOpen(true)}
         placeholder="dd/mm/yyyy"
-        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer ${className}`}
+        className={`ui-input w-full px-3 py-2 rounded-md focus:outline-none cursor-pointer ${className}`}
       />
 
       {/* Calendar Icon */}
@@ -200,7 +200,7 @@ export function DatePicker({
 
       {/* Calendar Popup */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-50 p-3 sm:p-4 w-full min-w-65 sm:w-72">
+        <div className="absolute top-full left-0 mt-2 bg-white/95 backdrop-blur border border-slate-200 rounded-2xl shadow-xl z-50 p-3 sm:p-4 w-full min-w-65 sm:w-72">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <button

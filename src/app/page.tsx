@@ -24,9 +24,9 @@ export default function RootPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="app-shell">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur shadow-md">
+      <nav className="sticky top-0 z-50 app-header">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 py-3 sm:h-16 sm:py-0">
             <div className="flex items-center gap-2">
@@ -100,7 +100,7 @@ export default function RootPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-14 sm:py-20 px-4 bg-gray-50">
+      <section className="py-14 sm:py-20 px-4 bg-transparent">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
@@ -113,7 +113,7 @@ export default function RootPage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Feature 1 */}
-            <div className="bg-white rounded-lg shadow-md p-8 hover:shadow-lg transition">
+            <div className="surface-card p-8 hover:shadow-xl transition">
               <div className="text-4xl mb-4">💰</div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
                 Financial Tracking
@@ -131,7 +131,7 @@ export default function RootPage() {
             </div>
 
             {/* Feature 2 */}
-            <div className="bg-white rounded-lg shadow-md p-8 hover:shadow-lg transition">
+            <div className="surface-card p-8 hover:shadow-xl transition">
               <div className="text-4xl mb-4">👥</div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
                 Member Management
@@ -149,7 +149,7 @@ export default function RootPage() {
             </div>
 
             {/* Feature 3 */}
-            <div className="bg-white rounded-lg shadow-md p-8 hover:shadow-lg transition">
+            <div className="surface-card p-8 hover:shadow-xl transition">
               <div className="text-4xl mb-4">📋</div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
                 Multi-Year Reports
@@ -167,7 +167,7 @@ export default function RootPage() {
             </div>
 
             {/* Feature 4 */}
-            <div className="bg-white rounded-lg shadow-md p-8 hover:shadow-lg transition">
+            <div className="surface-card p-8 hover:shadow-xl transition">
               <div className="text-4xl mb-4">📅</div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
                 Transaction Management
@@ -185,7 +185,7 @@ export default function RootPage() {
             </div>
 
             {/* Feature 5 */}
-            <div className="bg-white rounded-lg shadow-md p-8 hover:shadow-lg transition">
+            <div className="surface-card p-8 hover:shadow-xl transition">
               <div className="text-4xl mb-4">🔐</div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
                 Secure Authentication
@@ -203,7 +203,7 @@ export default function RootPage() {
             </div>
 
             {/* Feature 6 */}
-            <div className="bg-white rounded-lg shadow-md p-8 hover:shadow-lg transition">
+            <div className="surface-card p-8 hover:shadow-xl transition">
               <div className="text-4xl mb-4">📱</div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
                 Responsive Design
@@ -351,14 +351,14 @@ export default function RootPage() {
       </section>
 
       {/* Tech Stack Section */}
-      <section className="py-14 sm:py-20 px-4 bg-gray-50">
+      <section className="py-14 sm:py-20 px-4 bg-transparent">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-12 sm:mb-16 text-center">
             Built with Modern Tech
           </h2>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 text-center">
-            <div className="bg-white rounded-lg p-6 shadow-md">
+            <div className="surface-card p-6">
               <div className="text-5xl mb-4">⚛️</div>
               <h3 className="text-lg font-semibold text-gray-900">Next.js</h3>
               <p className="text-gray-600 mt-2 text-sm">
@@ -366,7 +366,7 @@ export default function RootPage() {
               </p>
             </div>
 
-            <div className="bg-white rounded-lg p-6 shadow-md">
+            <div className="surface-card p-6">
               <div className="text-5xl mb-4">🔥</div>
               <h3 className="text-lg font-semibold text-gray-900">Firebase</h3>
               <p className="text-gray-600 mt-2 text-sm">
@@ -374,7 +374,7 @@ export default function RootPage() {
               </p>
             </div>
 
-            <div className="bg-white rounded-lg p-6 shadow-md">
+            <div className="surface-card p-6">
               <div className="text-5xl mb-4">🎨</div>
               <h3 className="text-lg font-semibold text-gray-900">
                 Tailwind CSS
@@ -382,7 +382,7 @@ export default function RootPage() {
               <p className="text-gray-600 mt-2 text-sm">Beautiful styling</p>
             </div>
 
-            <div className="bg-white rounded-lg p-6 shadow-md">
+            <div className="surface-card p-6">
               <div className="text-5xl mb-4">📘</div>
               <h3 className="text-lg font-semibold text-gray-900">
                 TypeScript

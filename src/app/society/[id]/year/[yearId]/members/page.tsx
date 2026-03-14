@@ -134,9 +134,9 @@ export default function MembersPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <div className="app-shell">
         {/* Header */}
-        <header className="bg-white shadow">
+        <header className="app-header sticky top-0 z-30">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex justify-between items-start gap-3 flex-wrap">
               <div>
@@ -168,7 +168,7 @@ export default function MembersPage() {
             </h2>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
+              className="btn-primary px-5 py-2.5 text-white transition-colors font-semibold text-sm"
             >
               + Add Member
             </button>
@@ -179,11 +179,11 @@ export default function MembersPage() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           ) : members.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-lg shadow">
+            <div className="text-center py-12 surface-card">
               <p className="text-gray-500 text-lg mb-4">No members yet</p>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="btn-primary px-6 py-3 text-white transition-colors font-medium"
               >
                 Add First Member
               </button>
@@ -193,7 +193,7 @@ export default function MembersPage() {
               {members.map((member) => (
                 <div
                   key={member.id}
-                  className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
+                  className="surface-card p-6 hover:shadow-xl transition-shadow"
                 >
                   <h3 className="text-xl font-bold text-gray-900 mb-4">
                     {member.name}

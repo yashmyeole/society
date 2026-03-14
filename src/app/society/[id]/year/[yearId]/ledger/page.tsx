@@ -687,10 +687,12 @@ export default function LedgerPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-100">
-        <nav className="bg-blue-600 text-white p-4 shadow-md">
+      <div className="app-shell">
+        <nav className="app-header sticky top-0 z-30 p-4">
           <div className="container mx-auto flex justify-between items-center gap-3 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold">Ledger Report</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+              Ledger Report
+            </h1>
             <HeaderActions
               onLogout={async () => {
                 await signOut(auth);
@@ -710,7 +712,7 @@ export default function LedgerPage() {
 
         <main className="container mx-auto p-6 max-w-5xl">
           {/* Header Info */}
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
+          <div className="surface-card p-4 sm:p-6 mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               {society?.name}
             </h2>
@@ -721,7 +723,7 @@ export default function LedgerPage() {
           </div>
 
           {/* Filter and Fetch Section */}
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
+          <div className="surface-card p-4 sm:p-6 mb-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Filter By</h3>
             <div className="flex flex-col gap-4">
               {/* Transaction Head Filter */}
@@ -783,14 +785,14 @@ export default function LedgerPage() {
 
               <button
                 onClick={handleFetchLedger}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium transition-colors"
+                className="w-full px-4 py-2 btn-primary text-white rounded-md font-medium transition-colors"
               >
                 Fetch Ledger
               </button>
 
               {/* Opening Balance Section */}
               {selectedPerson && !selectedTransactionHead && (
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                <div className="surface-card-soft p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-gray-700 mb-2">
@@ -811,13 +813,13 @@ export default function LedgerPage() {
                           />
                           <button
                             onClick={handleSaveOpeningBalance}
-                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium text-sm transition-colors"
+                            className="px-4 py-2 btn-success text-white rounded-md font-medium text-sm transition-colors"
                           >
                             Save
                           </button>
                           <button
                             onClick={() => setEditingOpeningBalance(null)}
-                            className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 font-medium text-sm transition-colors"
+                            className="px-4 py-2 btn-neutral rounded-md font-medium text-sm transition-colors"
                           >
                             Cancel
                           </button>
@@ -831,7 +833,7 @@ export default function LedgerPage() {
                             onClick={() =>
                               handleEditOpeningBalance(selectedPerson)
                             }
-                            className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium text-sm transition-colors"
+                            className="px-3 py-1 btn-primary text-white rounded-md font-medium text-sm transition-colors"
                           >
                             Edit
                           </button>
@@ -851,7 +853,7 @@ export default function LedgerPage() {
 
               <button
                 onClick={downloadAllMembersExcel}
-                className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 font-medium transition-colors"
+                className="w-full px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700 font-medium transition-colors"
               >
                 📋 Download All Members Ledger
               </button>
@@ -871,7 +873,7 @@ export default function LedgerPage() {
                 <>
                   {/* Summary Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white rounded-lg shadow-md p-6">
+                    <div className="kpi-card p-6">
                       <h3 className="text-sm font-semibold text-gray-600 mb-2">
                         Opening Balance
                       </h3>
@@ -887,7 +889,7 @@ export default function LedgerPage() {
                         ₹{getOpeningBalance().toFixed(2)}
                       </p>
                     </div>
-                    <div className="bg-white rounded-lg shadow-md p-6">
+                    <div className="kpi-card p-6">
                       <h3 className="text-sm font-semibold text-gray-600 mb-2">
                         Total Income
                       </h3>
@@ -895,7 +897,7 @@ export default function LedgerPage() {
                         ₹{totalIncome.toFixed(2)}
                       </p>
                     </div>
-                    <div className="bg-white rounded-lg shadow-md p-6">
+                    <div className="kpi-card p-6">
                       <h3 className="text-sm font-semibold text-gray-600 mb-2">
                         Total Expense
                       </h3>
@@ -903,7 +905,7 @@ export default function LedgerPage() {
                         ₹{totalExpense.toFixed(2)}
                       </p>
                     </div>
-                    <div className="bg-white rounded-lg shadow-md p-6">
+                    <div className="kpi-card p-6">
                       <h3 className="text-sm font-semibold text-gray-600 mb-2">
                         Net Balance
                       </h3>
@@ -1027,7 +1029,7 @@ export default function LedgerPage() {
                   <div className="flex justify-center gap-4">
                     <button
                       onClick={downloadExcel}
-                      className="px-6 py-2.5 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold transition-colors flex items-center justify-center gap-2 text-sm"
+                      className="px-6 py-2.5 btn-success text-white rounded-md font-semibold transition-colors flex items-center justify-center gap-2 text-sm"
                     >
                       📊 Download Excel
                     </button>
