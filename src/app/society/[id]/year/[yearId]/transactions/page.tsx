@@ -270,11 +270,16 @@ export default function TransactionsPage() {
     e.preventDefault();
     if (!user || !societyId || !yearId) return;
 
-    // Only require member if income type is "Member Contribution"
-    if (incomeForm.incomeType === "Member Contribution") {
+    // Only require member if income type is "Member Contribution" or "Transfer Fee"
+    if (
+      incomeForm.incomeType === "Member Contribution" ||
+      incomeForm.incomeType === "Transfer Fee"
+    ) {
       const selectedMember = members.find((m) => m.id === incomeForm.memberId);
       if (!selectedMember) {
-        alert("Please select a member for Member Contribution");
+        alert(
+          `Please select a member for ${incomeForm.incomeType}`,
+        );
         return;
       }
     }
@@ -292,27 +297,18 @@ export default function TransactionsPage() {
         parseInt(dateParts[0]),
       );
 
-      // Determine memberName and memberId based on income type
+      // Determine memberName and memberId based on selected member or income type
       let memberName = "";
       let memberId = "";
 
-      if (
-        incomeForm.incomeType === "Member Contribution" ||
-        incomeForm.incomeType === "Conveyance Deed Contribution"
-      ) {
-        if (incomeForm.memberId) {
-          const selectedMember = members.find(
-            (m) => m.id === incomeForm.memberId,
-          );
-          memberName = selectedMember?.name || incomeForm.incomeType;
-          memberId = incomeForm.memberId;
-        } else {
-          // If member not selected, use income type as name
-          memberName = incomeForm.incomeType;
-          memberId = "";
-        }
+      if (incomeForm.memberId) {
+        const selectedMember = members.find(
+          (m) => m.id === incomeForm.memberId,
+        );
+        memberName = selectedMember?.name || incomeForm.incomeType;
+        memberId = incomeForm.memberId;
       } else {
-        // For other income types, use the income type as the name
+        // If member not selected, use income type as name
         memberName = incomeForm.incomeType;
         memberId = "";
       }
@@ -660,33 +656,30 @@ export default function TransactionsPage() {
                     ))
                   )}
 
-                  {(incomeForm.incomeType === "Member Contribution" ||
-                    incomeForm.incomeType ===
-                      "Conveyance Deed Contribution") && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Member{" "}
-                        {incomeForm.incomeType === "Member Contribution"
-                          ? "*"
-                          : "(Optional)"}
-                      </label>
-                      <SearchableSelect
-                        value={incomeForm.memberId}
-                        onChange={(value) =>
-                          setIncomeForm({ ...incomeForm, memberId: value })
-                        }
-                        options={members.map((member) => ({
-                          value: member.id,
-                          label: member.flatNumber
-                            ? `${member.name} - ${member.flatNumber}`
-                            : member.name,
-                        }))}
-                        placeholder="Select a member"
-                        searchPlaceholder="Search members..."
-                        emptyText="No members found"
-                      />
-                    </div>
-                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Member{" "}
+                      {incomeForm.incomeType === "Member Contribution" ||
+                      incomeForm.incomeType === "Transfer Fee"
+                        ? "*"
+                        : "(Optional)"}
+                    </label>
+                    <SearchableSelect
+                      value={incomeForm.memberId}
+                      onChange={(value) =>
+                        setIncomeForm({ ...incomeForm, memberId: value })
+                      }
+                      options={members.map((member) => ({
+                        value: member.id,
+                        label: member.flatNumber
+                          ? `${member.name} - ${member.flatNumber}`
+                          : member.name,
+                      }))}
+                      placeholder="Select a member"
+                      searchPlaceholder="Search members..."
+                      emptyText="No members found"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -827,30 +820,28 @@ export default function TransactionsPage() {
               />
             </div>
 
-            {(incomeForm.incomeType === "Member Contribution" ||
-              incomeForm.incomeType === "Conveyance Deed Contribution") && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Member{" "}
-                  {incomeForm.incomeType === "Member Contribution"
-                    ? "*"
-                    : "(Optional)"}
-                </label>
-                <SearchableSelect
-                  value={incomeForm.memberId}
-                  onChange={(value) =>
-                    setIncomeForm({ ...incomeForm, memberId: value })
-                  }
-                  options={members.map((member) => ({
-                    value: member.id,
-                    label: formatMemberLabel(member),
-                  }))}
-                  placeholder="Select a member"
-                  searchPlaceholder="Search members..."
-                  emptyText="No members found"
-                />
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Member{" "}
+                {incomeForm.incomeType === "Member Contribution" ||
+                incomeForm.incomeType === "Transfer Fee"
+                  ? "*"
+                  : "(Optional)"}
+              </label>
+              <SearchableSelect
+                value={incomeForm.memberId}
+                onChange={(value) =>
+                  setIncomeForm({ ...incomeForm, memberId: value })
+                }
+                options={members.map((member) => ({
+                  value: member.id,
+                  label: formatMemberLabel(member),
+                }))}
+                placeholder="Select a member"
+                searchPlaceholder="Search members..."
+                emptyText="No members found"
+              />
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1153,38 +1144,37 @@ export default function TransactionsPage() {
               </div>
             )}
 
-            {editForm.transactionType === "income" &&
-              (editForm.incomeType === "Member Contribution" ||
-                editForm.incomeType === "Conveyance Deed Contribution") && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Member{" "}
-                    {editForm.incomeType === "Member Contribution"
-                      ? "*"
-                      : "(Optional)"}
-                  </label>
-                  <SearchableSelect
-                    value={editForm.memberId}
-                    onChange={(value) => {
-                      const selectedMember = members.find(
-                        (member) => member.id === value,
-                      );
-                      setEditForm({
-                        ...editForm,
-                        memberId: value,
-                        memberName: selectedMember?.name || editForm.memberName,
-                      });
-                    }}
-                    options={members.map((member) => ({
-                      value: member.id,
-                      label: formatMemberLabel(member),
-                    }))}
-                    placeholder="Select a member"
-                    searchPlaceholder="Search members..."
-                    emptyText="No members found"
-                  />
-                </div>
-              )}
+            {editForm.transactionType === "income" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Member{" "}
+                  {editForm.incomeType === "Member Contribution" ||
+                  editForm.incomeType === "Transfer Fee"
+                    ? "*"
+                    : "(Optional)"}
+                </label>
+                <SearchableSelect
+                  value={editForm.memberId}
+                  onChange={(value) => {
+                    const selectedMember = members.find(
+                      (member) => member.id === value,
+                    );
+                    setEditForm({
+                      ...editForm,
+                      memberId: value,
+                      memberName: selectedMember?.name || editForm.memberName,
+                    });
+                  }}
+                  options={members.map((member) => ({
+                    value: member.id,
+                    label: formatMemberLabel(member),
+                  }))}
+                  placeholder="Select a member"
+                  searchPlaceholder="Search members..."
+                  emptyText="No members found"
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
