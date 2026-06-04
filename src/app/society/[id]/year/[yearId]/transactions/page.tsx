@@ -81,6 +81,10 @@ export default function TransactionsPage() {
   const { user } = useAuth();
   const router = useRouter();
 
+  // Monthly view state
+  const [selectedMonth, setSelectedMonth] = useState<string | "all">("all");
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+
   // Edit/Delete Transaction State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -107,6 +111,44 @@ export default function TransactionsPage() {
   useEffect(() => {
     fetchData();
   }, [user, societyId, yearId]);
+
+  // Recompute available months when transactions change
+  useEffect(() => {
+    const monthsSet = new Set<string>();
+    transactions.forEach((t) => {
+      const d = new Date(t.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+        2,
+        "0",
+      )}`;
+      monthsSet.add(key);
+    });
+    const months = Array.from(monthsSet).sort((a, b) => b.localeCompare(a));
+    setAvailableMonths(months);
+    if (
+      selectedMonth !== "all" &&
+      months.length > 0 &&
+      !months.includes(selectedMonth)
+    ) {
+      setSelectedMonth(months[0]);
+    }
+  }, [transactions]);
+
+  const monthLabel = (m: string) => {
+    if (m === "all") return "All";
+    const [y, mm] = m.split("-");
+    const d = new Date(Number(y), Number(mm) - 1, 1);
+    return d.toLocaleString(undefined, { month: "short", year: "numeric" });
+  };
+
+  const filterByMonth = (arr: Transaction[]) => {
+    if (selectedMonth === "all") return arr;
+    return arr.filter((t) => {
+      const d = new Date(t.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      return key === selectedMonth;
+    });
+  };
 
   const fetchData = async () => {
     if (!user || !societyId || !yearId) return;
@@ -472,9 +514,61 @@ export default function TransactionsPage() {
               {/* Income Section */}
               <div>
                 <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                    Income
-                  </h2>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                      Income
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          if (availableMonths.length === 0) return;
+                          if (selectedMonth === "all")
+                            setSelectedMonth(availableMonths[0]);
+                          else {
+                            const idx = availableMonths.indexOf(
+                              selectedMonth as string,
+                            );
+                            if (idx < availableMonths.length - 1)
+                              setSelectedMonth(availableMonths[idx + 1]);
+                          }
+                        }}
+                        className="px-2 py-1 bg-slate-100 rounded"
+                        title="Previous (older)"
+                      >
+                        ◀
+                      </button>
+                      <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        className="px-2 py-1 border rounded"
+                      >
+                        <option value="all">All</option>
+                        {availableMonths.map((m) => (
+                          <option key={m} value={m}>
+                            {monthLabel(m)}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => {
+                          if (availableMonths.length === 0) return;
+                          if (selectedMonth === "all")
+                            setSelectedMonth(availableMonths[0]);
+                          else {
+                            const idx = availableMonths.indexOf(
+                              selectedMonth as string,
+                            );
+                            if (idx > 0)
+                              setSelectedMonth(availableMonths[idx - 1]);
+                          }
+                        }}
+                        className="px-2 py-1 bg-slate-100 rounded"
+                        title="Next (newer)"
+                      >
+                        ▶
+                      </button>
+                    </div>
+                  </div>
                   <button
                     onClick={() => setIsIncomeModalOpen(true)}
                     className="btn-success px-4 py-2 text-white rounded-lg transition-colors text-sm font-semibold"
@@ -486,19 +580,26 @@ export default function TransactionsPage() {
                 <div className="kpi-card p-4 mb-4">
                   <p className="text-gray-600">Total Income</p>
                   <p className="text-3xl font-bold text-green-600">
-                    ₹{totalIncome.toFixed(2)}
+                    ₹
+                    {filterByMonth(incomeTransactions)
+                      .reduce(
+                        (s, t) =>
+                          s + (t.type === "credit" ? t.amount : -t.amount),
+                        0,
+                      )
+                      .toFixed(2)}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  {incomeTransactions.length === 0 ? (
+                  {filterByMonth(incomeTransactions).length === 0 ? (
                     <div className="text-center py-8 surface-card">
                       <p className="text-gray-500">
                         No income transactions yet
                       </p>
                     </div>
                   ) : (
-                    incomeTransactions.map((transaction) => (
+                    filterByMonth(incomeTransactions).map((transaction) => (
                       <div key={transaction.id} className="surface-card p-4">
                         <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
                           <div>
@@ -561,19 +662,22 @@ export default function TransactionsPage() {
                 <div className="kpi-card p-4 mb-4">
                   <p className="text-gray-600">Total Expenditure</p>
                   <p className="text-3xl font-bold text-red-600">
-                    ₹{totalExpense.toFixed(2)}
+                    ₹
+                    {filterByMonth(expenseTransactions)
+                      .reduce((s, t) => s + t.amount, 0)
+                      .toFixed(2)}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  {expenseTransactions.length === 0 ? (
+                  {filterByMonth(expenseTransactions).length === 0 ? (
                     <div className="text-center py-8 surface-card">
                       <p className="text-gray-500">
                         No expense transactions yet
                       </p>
                     </div>
                   ) : (
-                    expenseTransactions.map((transaction) => (
+                    filterByMonth(expenseTransactions).map((transaction) => (
                       <div key={transaction.id} className="surface-card p-4">
                         <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
                           <div>

@@ -67,7 +67,10 @@ export default function CashbookPage() {
   useEffect(() => {
     if (transactions.length > 0) {
       const bankTrans = transactions.filter(
-        (t) => t.paymentMethod === "bank" || t.paymentMethod === "cheque",
+        (t) =>
+          t.paymentMethod === "bank" ||
+          t.paymentMethod === "cheque" ||
+          t.paymentMethod === "upi",
       );
       const cashTrans = transactions.filter((t) => t.paymentMethod === "cash");
 
@@ -157,7 +160,10 @@ export default function CashbookPage() {
     yearData: any,
   ) => {
     const bankTrans = transData.filter(
-      (t) => t.paymentMethod === "bank" || t.paymentMethod === "cheque",
+      (t) =>
+        t.paymentMethod === "bank" ||
+        t.paymentMethod === "cheque" ||
+        t.paymentMethod === "upi",
     );
     const cashTrans = transData.filter((t) => t.paymentMethod === "cash");
 
@@ -227,7 +233,10 @@ export default function CashbookPage() {
 
   const getBankTransactions = () =>
     transactions.filter(
-      (t) => t.paymentMethod === "bank" || t.paymentMethod === "cheque",
+      (t) =>
+        t.paymentMethod === "bank" ||
+        t.paymentMethod === "cheque" ||
+        t.paymentMethod === "upi",
     );
 
   const getCashTransactions = () =>

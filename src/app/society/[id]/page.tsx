@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { ref, get, push, set } from "firebase/database";
+import { ref, get, push, set, remove } from "firebase/database";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/Modal";
@@ -37,8 +37,14 @@ export default function SocietyPage() {
   const [years, setYears] = useState<FinancialYear[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [yearToDelete, setYearToDelete] = useState<{
+    id: string;
+    year: string;
+  } | null>(null);
   const [year, setYear] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -120,6 +126,27 @@ export default function SocietyPage() {
     }
   };
 
+  const confirmDelete = (id: string, yearStr: string) => {
+    setYearToDelete({ id, year: yearStr });
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!user || !yearToDelete) return;
+    setDeleting(true);
+    try {
+      const yearRef = ref(db, `financialYears/${yearToDelete.id}`);
+      await remove(yearRef);
+      setIsDeleteConfirmOpen(false);
+      setYearToDelete(null);
+      fetchSocietyAndYears();
+    } catch (error) {
+      console.error("Error deleting year:", error);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -182,8 +209,32 @@ export default function SocietyPage() {
               {years.map((fy) => (
                 <div
                   key={fy.id}
-                  className="surface-card overflow-hidden hover:shadow-xl transition-shadow"
+                  className="relative surface-card overflow-hidden hover:shadow-xl transition-shadow"
                 >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      confirmDelete(fy.id, fy.year);
+                    }}
+                    aria-label={`Delete ${fy.year}`}
+                    className="absolute top-3 right-3 p-2 rounded-full bg-red-50 border border-red-200 text-red-700 hover:bg-red-100"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                      className="w-4 h-4"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.164M7 9h10M5 6h14M6 6l1 14a2 2 0 002 2h6a2 2 0 002-2l1-14"
+                      />
+                    </svg>
+                  </button>
+
                   <div
                     onClick={() =>
                       router.push(
@@ -199,6 +250,7 @@ export default function SocietyPage() {
                       Created: {formatDate(fy.createdAt)}
                     </p>
                   </div>
+
                   <div className="px-6 py-3 bg-slate-50/60 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <button
                       onClick={() =>
@@ -275,6 +327,43 @@ export default function SocietyPage() {
               </button>
             </div>
           </form>
+        </Modal>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={isDeleteConfirmOpen}
+          onClose={() => {
+            setIsDeleteConfirmOpen(false);
+            setYearToDelete(null);
+          }}
+          title="Confirm Delete"
+        >
+          <div className="space-y-4">
+            <p>
+              Are you sure you want to delete the financial year report{" "}
+              <strong>{yearToDelete?.year}</strong>? This action cannot be
+              undone.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 font-medium"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+              <button
+                onClick={() => {
+                  setIsDeleteConfirmOpen(false);
+                  setYearToDelete(null);
+                }}
+                className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </Modal>
       </div>
     </ProtectedRoute>
