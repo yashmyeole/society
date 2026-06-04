@@ -3,7 +3,17 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { ref, get, push, set, remove, update } from "firebase/database";
+import {
+  ref,
+  get,
+  push,
+  set,
+  remove,
+  update,
+  query,
+  orderByChild,
+  equalTo,
+} from "firebase/database";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/Modal";
@@ -59,7 +69,12 @@ export default function HomePage() {
     try {
       setLoading(true);
       const societiesRef = ref(db, "societies");
-      const snapshot = await get(societiesRef);
+      const userSocietiesQuery = query(
+        societiesRef,
+        orderByChild("userId"),
+        equalTo(user.uid),
+      );
+      const snapshot = await get(userSocietiesQuery);
 
       if (snapshot.exists()) {
         const allSocieties = snapshot.val();
@@ -67,16 +82,14 @@ export default function HomePage() {
 
         Object.entries(allSocieties).forEach(([key, value]) => {
           const societyValue = value as SocietyRecord;
-          if (societyValue.userId === user.uid) {
-            userSocieties.push({
-              id: key,
-              name: societyValue.name,
-              address: societyValue.address,
-              contactNumber: societyValue.contactNumber,
-              ownerName: societyValue.ownerName,
-              createdAt: societyValue.createdAt || Date.now(),
-            });
-          }
+          userSocieties.push({
+            id: key,
+            name: societyValue.name,
+            address: societyValue.address,
+            contactNumber: societyValue.contactNumber,
+            ownerName: societyValue.ownerName,
+            createdAt: societyValue.createdAt || Date.now(),
+          });
         });
 
         setSocieties(userSocieties);
@@ -85,6 +98,7 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error("Error fetching societies:", error);
+      setSocieties([]);
     } finally {
       setLoading(false);
     }

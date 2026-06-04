@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { ref, child, get, push, set } from "firebase/database";
+import { ref, get, push, set, remove } from "firebase/database";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/Modal";
@@ -37,6 +37,9 @@ export default function MembersPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState({
     flatNumber: "",
     name: "",
@@ -90,6 +93,26 @@ export default function MembersPage() {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const confirmDeleteMember = (member: Member) => {
+    setMemberToDelete(member);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!memberToDelete) return;
+    setDeleting(true);
+    try {
+      await remove(ref(db, `members/${memberToDelete.id}`));
+      setIsDeleteModalOpen(false);
+      setMemberToDelete(null);
+      fetchData();
+    } catch (error) {
+      console.error("Error deleting member:", error);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -210,6 +233,14 @@ export default function MembersPage() {
                     <p className="text-xs text-gray-500 pt-4">
                       Added: {formatDate(member.createdAt)}
                     </p>
+                    <div className="pt-4">
+                      <button
+                        onClick={() => confirmDeleteMember(member)}
+                        className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -292,6 +323,42 @@ export default function MembersPage() {
               </button>
             </div>
           </form>
+        </Modal>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setMemberToDelete(null);
+          }}
+          title="Delete Member"
+        >
+          <div className="space-y-4">
+            <p>
+              Are you sure you want to delete{" "}
+              <span className="font-semibold">{memberToDelete?.name}</span>?
+              This action cannot be undone.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 font-medium"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+              <button
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setMemberToDelete(null);
+                }}
+                className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </Modal>
       </div>
     </ProtectedRoute>

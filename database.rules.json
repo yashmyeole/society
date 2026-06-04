@@ -1,0 +1,35 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "societies": {
+      ".indexOn": "userId",
+      ".read": "auth != null && query.orderByChild === 'userId' && query.equalTo === auth.uid",
+      "$societyId": {
+        ".read": "auth != null && data.child('userId').val() === auth.uid",
+        ".write": "auth != null && (data.exists() ? data.child('userId').val() === auth.uid : newData.child('userId').val() === auth.uid)"
+      }
+    },
+    "financialYears": {
+      ".indexOn": ["userId", "societyId"],
+      "$yearId": {
+        ".read": "auth != null && data.child('userId').val() === auth.uid",
+        ".write": "auth != null && (data.exists() ? data.child('userId').val() === auth.uid : newData.child('userId').val() === auth.uid)"
+      }
+    },
+    "members": {
+      ".indexOn": ["userId", "societyId"],
+      "$memberId": {
+        ".read": "auth != null && data.child('userId').val() === auth.uid",
+        ".write": "auth != null && (data.exists() ? data.child('userId').val() === auth.uid : newData.child('userId').val() === auth.uid)"
+      }
+    },
+    "transactions": {
+      ".indexOn": ["userId", "societyId", "yearId"],
+      "$transactionId": {
+        ".read": "auth != null && data.child('userId').val() === auth.uid",
+        ".write": "auth != null && (data.exists() ? data.child('userId').val() === auth.uid : newData.child('userId').val() === auth.uid)"
+      }
+    }
+  }
+}

@@ -19,6 +19,7 @@ import {
 interface Member {
   id: string;
   name: string;
+  flatNumber: string;
 }
 
 interface Transaction {
@@ -138,6 +139,7 @@ export default function TransactionsPage() {
             membersData.push({
               id: key,
               name: value.name,
+              flatNumber: value.flatNumber || "",
             });
           }
         });
@@ -703,7 +705,9 @@ export default function TransactionsPage() {
                   <option value="">Select a member</option>
                   {members.map((member) => (
                     <option key={member.id} value={member.id}>
-                      {member.name}
+                      {member.flatNumber
+                        ? `${member.name} - ${member.flatNumber}`
+                        : member.name}
                     </option>
                   ))}
                 </select>
@@ -1084,7 +1088,9 @@ export default function TransactionsPage() {
                     <option value="">Select a member</option>
                     {members.map((member) => (
                       <option key={member.id} value={member.id}>
-                        {member.name}
+                        {member.flatNumber
+                          ? `${member.name} - ${member.flatNumber}`
+                          : member.name}
                       </option>
                     ))}
                   </select>

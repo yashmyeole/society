@@ -20,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={manrope.variable}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={manrope.variable} suppressHydrationWarning>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
