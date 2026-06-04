@@ -14,6 +14,7 @@ import { formatDate } from "@/lib/dateFormat";
 interface Member {
   id: string;
   name: string;
+  wing: string;
   flatNumber: string;
   contactNumber: string;
   createdAt: number;
@@ -40,7 +41,10 @@ export default function MembersPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [memberToEdit, setMemberToEdit] = useState<Member | null>(null);
   const [formData, setFormData] = useState({
+    wing: "",
     flatNumber: "",
     name: "",
     contactNumber: "",
@@ -83,6 +87,7 @@ export default function MembersPage() {
             membersData.push({
               id: key,
               ...value,
+              wing: value.wing || "",
               createdAt: value.createdAt || Date.now(),
             });
           }
@@ -99,6 +104,17 @@ export default function MembersPage() {
   const confirmDeleteMember = (member: Member) => {
     setMemberToDelete(member);
     setIsDeleteModalOpen(true);
+  };
+
+  const handleEditMember = (member: Member) => {
+    setMemberToEdit(member);
+    setFormData({
+      wing: member.wing || "",
+      flatNumber: member.flatNumber || "",
+      name: member.name || "",
+      contactNumber: member.contactNumber || "",
+    });
+    setIsEditModalOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
@@ -133,6 +149,7 @@ export default function MembersPage() {
       });
 
       setFormData({
+        wing: "",
         flatNumber: "",
         name: "",
         contactNumber: "",
@@ -152,6 +169,43 @@ export default function MembersPage() {
       router.push("/login");
     } catch (error) {
       console.error("Error logging out:", error);
+    }
+  };
+
+  const formatMemberLabel = (member: Member) => {
+    const parts = [];
+    if (member.wing) parts.push(member.wing);
+    if (member.flatNumber) parts.push(member.flatNumber);
+    return parts.length > 0 ? parts.join(" - ") : "";
+  };
+
+  const handleUpdateMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !societyId || !memberToEdit) return;
+
+    setSubmitting(true);
+    try {
+      await set(ref(db, `members/${memberToEdit.id}`), {
+        ...memberToEdit,
+        ...formData,
+        societyId,
+        userId: user.uid,
+        createdAt: memberToEdit.createdAt,
+      });
+
+      setIsEditModalOpen(false);
+      setMemberToEdit(null);
+      setFormData({
+        wing: "",
+        flatNumber: "",
+        name: "",
+        contactNumber: "",
+      });
+      fetchData();
+    } catch (error) {
+      console.error("Error updating member:", error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -216,24 +270,30 @@ export default function MembersPage() {
               {members.map((member) => (
                 <div
                   key={member.id}
-                  className="surface-card p-6 hover:shadow-xl transition-shadow"
+                  className="surface-card p-4 hover:shadow-xl transition-shadow"
                 >
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">
                     {member.name}
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <p className="text-gray-600">
-                      <span className="font-semibold">Flat:</span>{" "}
-                      {member.flatNumber}
+                      <span className="font-semibold">Location:</span>{" "}
+                      {formatMemberLabel(member) || "-"}
                     </p>
                     <p className="text-gray-600">
-                      <span className="font-semibold">Contact:</span>{" "}
+                      <span className="font-semibold">Contact:</span>
                       {member.contactNumber}
                     </p>
-                    <p className="text-xs text-gray-500 pt-4">
+                    <p className="text-xs text-gray-500 pt-2">
                       Added: {formatDate(member.createdAt)}
                     </p>
-                    <div className="pt-4">
+                    <div className="pt-3 flex gap-2">
+                      <button
+                        onClick={() => handleEditMember(member)}
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                      >
+                        Edit
+                      </button>
                       <button
                         onClick={() => confirmDeleteMember(member)}
                         className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
@@ -255,6 +315,22 @@ export default function MembersPage() {
           title="Add New Member"
         >
           <form onSubmit={handleAddMember} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Wing *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.wing}
+                onChange={(e) =>
+                  setFormData({ ...formData, wing: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., A"
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Flat Number *
@@ -317,6 +393,105 @@ export default function MembersPage() {
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
+                className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Edit Member Modal */}
+        <Modal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setMemberToEdit(null);
+          }}
+          title="Edit Member"
+        >
+          <form onSubmit={handleUpdateMember} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Wing *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.wing}
+                onChange={(e) =>
+                  setFormData({ ...formData, wing: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., A"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Flat Number *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.flatNumber}
+                onChange={(e) =>
+                  setFormData({ ...formData, flatNumber: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., A-101"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Member Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., John Doe"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Contact Number *
+              </label>
+              <input
+                type="tel"
+                required
+                value={formData.contactNumber}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    contactNumber: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., +1 234 567 8900"
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
+              >
+                {submitting ? "Saving..." : "Save Changes"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setMemberToEdit(null);
+                }}
                 className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-medium"
               >
                 Cancel

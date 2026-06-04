@@ -10,6 +10,7 @@ import { Modal } from "@/components/Modal";
 import { DatePicker } from "@/components/DatePicker";
 import { HeaderActions } from "@/components/HeaderActions";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { SearchableSelect } from "@/components/SearchableSelect";
 import {
   formatDate,
   convertToDateInputFormat,
@@ -19,6 +20,7 @@ import {
 interface Member {
   id: string;
   name: string;
+  wing: string;
   flatNumber: string;
 }
 
@@ -47,6 +49,52 @@ interface FinancialYear {
 interface Society {
   name: string;
 }
+
+const incomeTypeOptions = [
+  { value: "Member Contribution", label: "Member Contribution" },
+  {
+    value: "Conveyance Deed Contribution",
+    label: "Conveyance Deed Contribution",
+  },
+  { value: "Bank Interest", label: "Bank Interest" },
+  { value: "Transfer Fee", label: "Transfer Fee" },
+  { value: "Entrance Fee", label: "Entrance Fee" },
+  { value: "Other Income", label: "Other Income" },
+];
+
+const expenseTypeOptions = [
+  { value: "Repair & Maintenance", label: "Repair & Maintenance" },
+  { value: "Sweeper Salary", label: "Sweeper Salary" },
+  { value: "Security Guard Salary", label: "Security Guard Salary" },
+  { value: "Pump Operator Salary", label: "Pump Operator Salary" },
+  { value: "Electric Bill", label: "Electric Bill" },
+  { value: "Water Bill", label: "Water Bill" },
+  { value: "Property Tax", label: "Property Tax" },
+  { value: "Bank Charges", label: "Bank Charges" },
+  { value: "Miscellaneous Expenses", label: "Miscellaneous Expenses" },
+  { value: "Other Expenses", label: "Other Expenses" },
+  { value: "Conveyance", label: "Conveyance" },
+  { value: "Conveyance Deed Expenses", label: "Conveyance Deed Expenses" },
+];
+
+const paymentMethodOptions = [
+  { value: "cash", label: "Cash" },
+  { value: "cheque", label: "Cheque" },
+  { value: "upi", label: "UPI" },
+];
+
+const typeOptions = [
+  { value: "credit", label: "Credit" },
+  { value: "debit", label: "Debit" },
+];
+
+const formatMemberLabel = (member: Member) => {
+  const parts = [];
+  if (member.wing) parts.push(member.wing);
+  if (member.flatNumber) parts.push(member.flatNumber);
+  const location = parts.join(" - ");
+  return location ? `${location} - ${member.name}` : member.name;
+};
 
 export default function TransactionsPage() {
   const params = useParams();
@@ -181,6 +229,7 @@ export default function TransactionsPage() {
             membersData.push({
               id: key,
               name: value.name,
+              wing: value.wing || "",
               flatNumber: value.flatNumber || "",
             });
           }
@@ -518,55 +567,23 @@ export default function TransactionsPage() {
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                       Income
                     </h2>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          if (availableMonths.length === 0) return;
-                          if (selectedMonth === "all")
-                            setSelectedMonth(availableMonths[0]);
-                          else {
-                            const idx = availableMonths.indexOf(
-                              selectedMonth as string,
-                            );
-                            if (idx < availableMonths.length - 1)
-                              setSelectedMonth(availableMonths[idx + 1]);
-                          }
-                        }}
-                        className="px-2 py-1 bg-slate-100 rounded"
-                        title="Previous (older)"
-                      >
-                        ◀
-                      </button>
-                      <select
+                    <div className="w-full sm:w-56">
+                      <SearchableSelect
                         value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(e.target.value)}
-                        className="px-2 py-1 border rounded"
-                      >
-                        <option value="all">All</option>
-                        {availableMonths.map((m) => (
-                          <option key={m} value={m}>
-                            {monthLabel(m)}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => {
-                          if (availableMonths.length === 0) return;
-                          if (selectedMonth === "all")
-                            setSelectedMonth(availableMonths[0]);
-                          else {
-                            const idx = availableMonths.indexOf(
-                              selectedMonth as string,
-                            );
-                            if (idx > 0)
-                              setSelectedMonth(availableMonths[idx - 1]);
-                          }
-                        }}
-                        className="px-2 py-1 bg-slate-100 rounded"
-                        title="Next (newer)"
-                      >
-                        ▶
-                      </button>
+                        onChange={(value) =>
+                          setSelectedMonth(value as string | "all")
+                        }
+                        options={[
+                          { value: "all", label: "All" },
+                          ...availableMonths.map((m) => ({
+                            value: m,
+                            label: monthLabel(m),
+                          })),
+                        ]}
+                        placeholder="All"
+                        searchPlaceholder="Search months..."
+                        emptyText="No months found"
+                      />
                     </div>
                   </div>
                   <button
@@ -641,6 +658,34 @@ export default function TransactionsPage() {
                         </div>
                       </div>
                     ))
+                  )}
+
+                  {(incomeForm.incomeType === "Member Contribution" ||
+                    incomeForm.incomeType ===
+                      "Conveyance Deed Contribution") && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Member{" "}
+                        {incomeForm.incomeType === "Member Contribution"
+                          ? "*"
+                          : "(Optional)"}
+                      </label>
+                      <SearchableSelect
+                        value={incomeForm.memberId}
+                        onChange={(value) =>
+                          setIncomeForm({ ...incomeForm, memberId: value })
+                        }
+                        options={members.map((member) => ({
+                          value: member.id,
+                          label: member.flatNumber
+                            ? `${member.name} - ${member.flatNumber}`
+                            : member.name,
+                        }))}
+                        placeholder="Select a member"
+                        searchPlaceholder="Search members..."
+                        emptyText="No members found"
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -766,27 +811,20 @@ export default function TransactionsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Income Type *
               </label>
-              <select
-                required
+              <SearchableSelect
                 value={incomeForm.incomeType}
-                onChange={(e) =>
+                onChange={(value) =>
                   setIncomeForm({
                     ...incomeForm,
-                    incomeType: e.target.value,
+                    incomeType: value,
                     memberId: "", // Reset member when income type changes
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="Member Contribution">Member Contribution</option>
-                <option value="Conveyance Deed Contribution">
-                  Conveyance Deed Contribution
-                </option>
-                <option value="Bank Interest">Bank Interest</option>
-                <option value="Transfer Fee">Transfer Fee</option>
-                <option value="Entrance Fee">Entrance Fee</option>
-                <option value="Other Income">Other Income</option>
-              </select>
+                options={incomeTypeOptions}
+                placeholder="Select income type"
+                searchPlaceholder="Search income types..."
+                emptyText="No income types found"
+              />
             </div>
 
             {(incomeForm.incomeType === "Member Contribution" ||
@@ -798,23 +836,19 @@ export default function TransactionsPage() {
                     ? "*"
                     : "(Optional)"}
                 </label>
-                <select
-                  required
+                <SearchableSelect
                   value={incomeForm.memberId}
-                  onChange={(e) =>
-                    setIncomeForm({ ...incomeForm, memberId: e.target.value })
+                  onChange={(value) =>
+                    setIncomeForm({ ...incomeForm, memberId: value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select a member</option>
-                  {members.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.flatNumber
-                        ? `${member.name} - ${member.flatNumber}`
-                        : member.name}
-                    </option>
-                  ))}
-                </select>
+                  options={members.map((member) => ({
+                    value: member.id,
+                    label: formatMemberLabel(member),
+                  }))}
+                  placeholder="Select a member"
+                  searchPlaceholder="Search members..."
+                  emptyText="No members found"
+                />
               </div>
             )}
 
@@ -822,39 +856,38 @@ export default function TransactionsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Type *
               </label>
-              <select
+              <SearchableSelect
                 value={incomeForm.type}
-                onChange={(e) =>
+                onChange={(value) =>
                   setIncomeForm({
                     ...incomeForm,
-                    type: e.target.value as "debit" | "credit",
+                    type: value as "debit" | "credit",
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="credit">Credit</option>
-                <option value="debit">Debit</option>
-              </select>
+                options={typeOptions}
+                placeholder="Select type"
+                searchPlaceholder="Search type..."
+                emptyText="No types found"
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Payment Method *
               </label>
-              <select
+              <SearchableSelect
                 value={incomeForm.paymentMethod}
-                onChange={(e) =>
+                onChange={(value) =>
                   setIncomeForm({
                     ...incomeForm,
-                    paymentMethod: e.target.value as "cash" | "cheque" | "upi",
+                    paymentMethod: value as "cash" | "cheque" | "upi",
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="cash">Cash</option>
-                <option value="cheque">Cheque</option>
-                <option value="upi">UPI</option>
-              </select>
+                options={paymentMethodOptions}
+                placeholder="Select payment method"
+                searchPlaceholder="Search payment methods..."
+                emptyText="No payment methods found"
+              />
             </div>
 
             {incomeForm.paymentMethod === "cheque" && (
@@ -938,40 +971,19 @@ export default function TransactionsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Expense Type *
               </label>
-              <select
-                required
+              <SearchableSelect
                 value={expenseForm.expenseType}
-                onChange={(e) =>
+                onChange={(value) =>
                   setExpenseForm({
                     ...expenseForm,
-                    expenseType: e.target.value,
+                    expenseType: value,
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="Repair & Maintenance">
-                  Repair & Maintenance
-                </option>
-                <option value="Sweeper Salary">Sweeper Salary</option>
-                <option value="Security Guard Salary">
-                  Security Guard Salary
-                </option>
-                <option value="Pump Operator Salary">
-                  Pump Operator Salary
-                </option>
-                <option value="Electric Bill">Electric Bill</option>
-                <option value="Water Bill">Water Bill</option>
-                <option value="Property Tax">Property Tax</option>
-                <option value="Bank Charges">Bank Charges</option>
-                <option value="Miscellaneous Expenses">
-                  Miscellaneous Expenses
-                </option>
-                <option value="Other Expenses">Other Expenses</option>
-                <option value="Conveyance">Conveyance</option>
-                <option value="Conveyance Deed Expenses">
-                  Conveyance Deed Expenses
-                </option>
-              </select>
+                options={expenseTypeOptions}
+                placeholder="Select expense type"
+                searchPlaceholder="Search expense types..."
+                emptyText="No expense types found"
+              />
             </div>
 
             <div>
@@ -993,20 +1005,19 @@ export default function TransactionsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Payment Method *
               </label>
-              <select
+              <SearchableSelect
                 value={expenseForm.paymentMethod}
-                onChange={(e) =>
+                onChange={(value) =>
                   setExpenseForm({
                     ...expenseForm,
-                    paymentMethod: e.target.value as "cash" | "cheque" | "upi",
+                    paymentMethod: value as "cash" | "cheque" | "upi",
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="cash">Cash</option>
-                <option value="cheque">Cheque</option>
-                <option value="upi">UPI</option>
-              </select>
+                options={paymentMethodOptions}
+                placeholder="Select payment method"
+                searchPlaceholder="Search payment methods..."
+                emptyText="No payment methods found"
+              />
             </div>
 
             {expenseForm.paymentMethod === "cheque" && (
@@ -1107,29 +1118,20 @@ export default function TransactionsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Income Type *
                 </label>
-                <select
+                <SearchableSelect
                   value={editForm.incomeType}
-                  onChange={(e) =>
+                  onChange={(value) =>
                     setEditForm({
                       ...editForm,
-                      incomeType: e.target.value,
+                      incomeType: value,
                       memberId: "",
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="">Select income type</option>
-                  <option value="Member Contribution">
-                    Member Contribution
-                  </option>
-                  <option value="Conveyance Deed Contribution">
-                    Conveyance Deed Contribution
-                  </option>
-                  <option value="Bank Interest">Bank Interest</option>
-                  <option value="Transfer Fee">Transfer Fee</option>
-                  <option value="Entrance Fee">Entrance Fee</option>
-                  <option value="Other Income">Other Income</option>
-                </select>
+                  options={incomeTypeOptions}
+                  placeholder="Select income type"
+                  searchPlaceholder="Search income types..."
+                  emptyText="No income types found"
+                />
               </div>
             )}
 
@@ -1138,37 +1140,16 @@ export default function TransactionsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Expense Type *
                 </label>
-                <select
+                <SearchableSelect
                   value={editForm.expenseType}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, expenseType: e.target.value })
+                  onChange={(value) =>
+                    setEditForm({ ...editForm, expenseType: value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="">Select expense type</option>
-                  <option value="Repair & Maintenance">
-                    Repair & Maintenance
-                  </option>
-                  <option value="Sweeper Salary">Sweeper Salary</option>
-                  <option value="Security Guard Salary">
-                    Security Guard Salary
-                  </option>
-                  <option value="Pump Operator Salary">
-                    Pump Operator Salary
-                  </option>
-                  <option value="Electric Bill">Electric Bill</option>
-                  <option value="Water Bill">Water Bill</option>
-                  <option value="Property Tax">Property Tax</option>
-                  <option value="Bank Charges">Bank Charges</option>
-                  <option value="Miscellaneous Expenses">
-                    Miscellaneous Expenses
-                  </option>
-                  <option value="Other Expenses">Other Expenses</option>
-                  <option value="Conveyance">Conveyance</option>
-                  <option value="Conveyance Deed Expenses">
-                    Conveyance Deed Expenses
-                  </option>
-                </select>
+                  options={expenseTypeOptions}
+                  placeholder="Select expense type"
+                  searchPlaceholder="Search expense types..."
+                  emptyText="No expense types found"
+                />
               </div>
             )}
 
@@ -1182,22 +1163,26 @@ export default function TransactionsPage() {
                       ? "*"
                       : "(Optional)"}
                   </label>
-                  <select
+                  <SearchableSelect
                     value={editForm.memberId}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, memberId: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="">Select a member</option>
-                    {members.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.flatNumber
-                          ? `${member.name} - ${member.flatNumber}`
-                          : member.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => {
+                      const selectedMember = members.find(
+                        (member) => member.id === value,
+                      );
+                      setEditForm({
+                        ...editForm,
+                        memberId: value,
+                        memberName: selectedMember?.name || editForm.memberName,
+                      });
+                    }}
+                    options={members.map((member) => ({
+                      value: member.id,
+                      label: formatMemberLabel(member),
+                    }))}
+                    placeholder="Select a member"
+                    searchPlaceholder="Search members..."
+                    emptyText="No members found"
+                  />
                 </div>
               )}
 
@@ -1207,22 +1192,25 @@ export default function TransactionsPage() {
                   ? "Member Name / Description"
                   : "Reason / Notes"}
               </label>
-              <input
-                type="text"
-                value={
-                  editForm.transactionType === "income"
-                    ? editForm.memberName
-                    : editForm.reason
-                }
-                onChange={(e) => {
-                  if (editForm.transactionType === "income") {
-                    setEditForm({ ...editForm, memberName: e.target.value });
-                  } else {
-                    setEditForm({ ...editForm, reason: e.target.value });
+              {editForm.transactionType === "income" ? (
+                <input
+                  type="text"
+                  value={editForm.memberName}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, memberName: e.target.value })
                   }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={editForm.reason}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, reason: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1242,17 +1230,16 @@ export default function TransactionsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Payment Method *
               </label>
-              <select
+              <SearchableSelect
                 value={editForm.paymentMethod}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, paymentMethod: e.target.value })
+                onChange={(value) =>
+                  setEditForm({ ...editForm, paymentMethod: value })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="cash">Cash</option>
-                <option value="cheque">Cheque</option>
-                <option value="upi">UPI</option>
-              </select>
+                options={paymentMethodOptions}
+                placeholder="Select payment method"
+                searchPlaceholder="Search payment methods..."
+                emptyText="No payment methods found"
+              />
             </div>
             {editForm.paymentMethod === "cheque" && (
               <div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { ref, get, set } from "firebase/database";
@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { HeaderActions } from "@/components/HeaderActions";
+import { SearchableSelect } from "@/components/SearchableSelect";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import * as XLSX from "xlsx";
@@ -56,8 +57,76 @@ export default function CashbookPage() {
   const [editingBankOpening, setEditingBankOpening] = useState(false);
   const [editingCashOpening, setEditingCashOpening] = useState(false);
   const [savingBalance, setSavingBalance] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const { user } = useAuth();
   const router = useRouter();
+
+  const monthKeyFromDate = (date: number) => {
+    const d = new Date(date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+
+  const monthLabel = (monthKey: string) => {
+    if (monthKey === "all") return "All Months";
+    const [yearPart, monthPart] = monthKey.split("-");
+    const date = new Date(Number(yearPart), Number(monthPart) - 1, 1);
+    return date.toLocaleString(undefined, { month: "short", year: "numeric" });
+  };
+
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    transactions.forEach((transaction) => {
+      months.add(monthKeyFromDate(transaction.date));
+    });
+    return Array.from(months).sort((a, b) => b.localeCompare(a));
+  }, [transactions]);
+
+  useEffect(() => {
+    if (selectedMonth !== "all" && !availableMonths.includes(selectedMonth)) {
+      setSelectedMonth(availableMonths[0] || "all");
+    }
+  }, [availableMonths, selectedMonth]);
+
+  const selectedTransactions = useMemo(() => {
+    if (selectedMonth === "all") return transactions;
+    return transactions.filter((transaction) => {
+      return monthKeyFromDate(transaction.date) === selectedMonth;
+    });
+  }, [transactions, selectedMonth]);
+
+  const getOpeningBalancesForMonth = useMemo(() => {
+    const bankOpen = year?.bankOpeningBalance || 0;
+    const cashOpen = year?.cashOpeningBalance || 0;
+
+    if (selectedMonth === "all") {
+      return { bank: bankOpen, cash: cashOpen };
+    }
+
+    const priorTransactions = transactions.filter(
+      (transaction) => monthKeyFromDate(transaction.date) < selectedMonth,
+    );
+
+    let bankBalance = bankOpen;
+    let cashBalance = cashOpen;
+
+    priorTransactions.forEach((transaction) => {
+      const isBank =
+        transaction.paymentMethod === "bank" ||
+        transaction.paymentMethod === "cheque" ||
+        transaction.paymentMethod === "upi";
+      const targetBalance = isBank ? "bank" : "cash";
+
+      if (transaction.transactionType === "income") {
+        if (targetBalance === "bank") bankBalance += transaction.amount;
+        else cashBalance += transaction.amount;
+      } else {
+        if (targetBalance === "bank") bankBalance -= transaction.amount;
+        else cashBalance -= transaction.amount;
+      }
+    });
+
+    return { bank: bankBalance, cash: cashBalance };
+  }, [transactions, selectedMonth, year]);
 
   useEffect(() => {
     fetchData();
@@ -65,38 +134,38 @@ export default function CashbookPage() {
 
   // Recalculate closing balances when opening balances or transactions change
   useEffect(() => {
-    if (transactions.length > 0) {
-      const bankTrans = transactions.filter(
-        (t) =>
-          t.paymentMethod === "bank" ||
-          t.paymentMethod === "cheque" ||
-          t.paymentMethod === "upi",
-      );
-      const cashTrans = transactions.filter((t) => t.paymentMethod === "cash");
+    const bankTrans = selectedTransactions.filter(
+      (t) =>
+        t.paymentMethod === "bank" ||
+        t.paymentMethod === "cheque" ||
+        t.paymentMethod === "upi",
+    );
+    const cashTrans = selectedTransactions.filter(
+      (t) => t.paymentMethod === "cash",
+    );
 
-      let bankBalance = bankOpeningBalance;
-      let cashBalance = cashOpeningBalance;
+    let bankBalance = getOpeningBalancesForMonth.bank;
+    let cashBalance = getOpeningBalancesForMonth.cash;
 
-      bankTrans.forEach((trans) => {
-        if (trans.transactionType === "income") {
-          bankBalance += trans.amount;
-        } else {
-          bankBalance -= trans.amount;
-        }
-      });
+    bankTrans.forEach((trans) => {
+      if (trans.transactionType === "income") {
+        bankBalance += trans.amount;
+      } else {
+        bankBalance -= trans.amount;
+      }
+    });
 
-      cashTrans.forEach((trans) => {
-        if (trans.transactionType === "income") {
-          cashBalance += trans.amount;
-        } else {
-          cashBalance -= trans.amount;
-        }
-      });
+    cashTrans.forEach((trans) => {
+      if (trans.transactionType === "income") {
+        cashBalance += trans.amount;
+      } else {
+        cashBalance -= trans.amount;
+      }
+    });
 
-      setBankClosingBalance(bankBalance);
-      setCashClosingBalance(cashBalance);
-    }
-  }, [bankOpeningBalance, cashOpeningBalance, transactions]);
+    setBankClosingBalance(bankBalance);
+    setCashClosingBalance(cashBalance);
+  }, [getOpeningBalancesForMonth, selectedTransactions]);
 
   const fetchData = async () => {
     if (!user || !societyId || !yearId) return;
@@ -232,7 +301,7 @@ export default function CashbookPage() {
   };
 
   const getBankTransactions = () =>
-    transactions.filter(
+    selectedTransactions.filter(
       (t) =>
         t.paymentMethod === "bank" ||
         t.paymentMethod === "cheque" ||
@@ -240,11 +309,11 @@ export default function CashbookPage() {
     );
 
   const getCashTransactions = () =>
-    transactions.filter((t) => t.paymentMethod === "cash");
+    selectedTransactions.filter((t) => t.paymentMethod === "cash");
 
   const calculateBankBalance = (index: number): number => {
     const bankTrans = getBankTransactions();
-    let balance = bankOpeningBalance;
+    let balance = getOpeningBalancesForMonth.bank;
     for (let i = 0; i <= index; i++) {
       const trans = bankTrans[i];
       if (trans.transactionType === "income") {
@@ -258,7 +327,7 @@ export default function CashbookPage() {
 
   const calculateCashBalance = (index: number): number => {
     const cashTrans = getCashTransactions();
-    let balance = cashOpeningBalance;
+    let balance = getOpeningBalancesForMonth.cash;
     for (let i = 0; i <= index; i++) {
       const trans = cashTrans[i];
       if (trans.transactionType === "income") {
@@ -511,9 +580,12 @@ export default function CashbookPage() {
     BANK
     */
 
+      const reportSuffix =
+        selectedMonth === "all" ? "All Months" : monthLabel(selectedMonth);
+
       buildSheet(
-        "Bank Transactions",
-        bankOpeningBalance,
+        `Bank Transactions (${reportSuffix})`,
+        getOpeningBalancesForMonth.bank,
         bankTrans,
         bankTotals,
         bankClosingBalance,
@@ -524,8 +596,8 @@ export default function CashbookPage() {
     */
 
       buildSheet(
-        "Cash Transactions",
-        cashOpeningBalance,
+        `Cash Transactions (${reportSuffix})`,
+        getOpeningBalancesForMonth.cash,
         cashTrans,
         cashTotals,
         cashClosingBalance,
@@ -544,7 +616,7 @@ export default function CashbookPage() {
       summary.getCell("A1").style = titleStyle;
 
       summary.mergeCells("A2:B2");
-      summary.getCell("A2").value = "SUMMARY";
+      summary.getCell("A2").value = `SUMMARY (${reportSuffix})`;
       summary.getCell("A2").style = subtitleStyle;
 
       summary.mergeCells("A3:B3");
@@ -605,7 +677,7 @@ export default function CashbookPage() {
 
       saveAs(
         new Blob([buffer]),
-        `${society?.name}-Cashbook-${year?.year}.xlsx`,
+        `${society?.name}-Cashbook-${year?.year}-${selectedMonth === "all" ? "All-Months" : selectedMonth}.xlsx`,
       );
     } catch (error) {
       console.error(error);
@@ -651,7 +723,7 @@ export default function CashbookPage() {
         heightLeft -= pdfHeight - 20;
       }
 
-      const filename = `${society?.name || "Cashbook"}-${year?.year || "Report"}.pdf`;
+      const filename = `${society?.name || "Cashbook"}-${year?.year || "Report"}-${selectedMonth === "all" ? "All-Months" : selectedMonth}.pdf`;
       pdf.save(filename);
     } catch (error) {
       console.error("PDF Error:", error);
@@ -700,6 +772,38 @@ export default function CashbookPage() {
         </nav>
 
         <main className="container mx-auto px-4 py-8 max-w-7xl">
+          <div className="surface-card p-4 sm:p-6 mb-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 mb-1">
+                  View By Month
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Select a month to view and export that month’s cashbook.
+                </p>
+              </div>
+              <div className="w-full sm:w-96">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Month
+                </label>
+                <SearchableSelect
+                  value={selectedMonth}
+                  onChange={setSelectedMonth}
+                  options={[
+                    { value: "all", label: "All Months" },
+                    ...availableMonths.map((monthKey) => ({
+                      value: monthKey,
+                      label: monthLabel(monthKey),
+                    })),
+                  ]}
+                  placeholder="All Months"
+                  searchPlaceholder="Search months..."
+                  emptyText="No months found"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Opening Balances */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div className="surface-card p-6">
@@ -735,7 +839,7 @@ export default function CashbookPage() {
               ) : (
                 <div className="space-y-4">
                   <p className="text-3xl font-bold text-blue-600">
-                    ₹{bankOpeningBalance.toFixed(2)}
+                    ₹{getOpeningBalancesForMonth.bank.toFixed(2)}
                   </p>
                   <button
                     onClick={() => setEditingBankOpening(true)}
@@ -780,7 +884,7 @@ export default function CashbookPage() {
               ) : (
                 <div className="space-y-4">
                   <p className="text-3xl font-bold text-green-600">
-                    ₹{cashOpeningBalance.toFixed(2)}
+                    ₹{getOpeningBalancesForMonth.cash.toFixed(2)}
                   </p>
                   <button
                     onClick={() => setEditingCashOpening(true)}
@@ -834,7 +938,7 @@ export default function CashbookPage() {
                         Opening Balance
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-right font-bold text-blue-600">
-                        ₹{bankOpeningBalance.toFixed(2)}
+                        ₹{getOpeningBalancesForMonth.bank.toFixed(2)}
                       </td>
                     </tr>
                     {bankTrans.length === 0 ? (
@@ -952,7 +1056,7 @@ export default function CashbookPage() {
                         Opening Balance
                       </td>
                       <td className="border border-gray-300 px-4 py-2 text-right font-bold text-green-600">
-                        ₹{cashOpeningBalance.toFixed(2)}
+                        ₹{getOpeningBalancesForMonth.cash.toFixed(2)}
                       </td>
                     </tr>
                     {cashTrans.length === 0 ? (
@@ -1036,11 +1140,14 @@ export default function CashbookPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
             <div className="surface-card-soft p-6">
               <h3 className="text-lg font-bold text-blue-800 mb-4">
-                Bank Summary
+                Bank Summary{" "}
+                {selectedMonth === "all"
+                  ? ""
+                  : `(${monthLabel(selectedMonth)})`}
               </h3>
               <div className="space-y-2 text-sm">
                 <p className="text-gray-800">
-                  Opening: ₹{bankOpeningBalance.toFixed(2)}
+                  Opening: ₹{getOpeningBalancesForMonth.bank.toFixed(2)}
                 </p>
                 <p className="text-gray-800">
                   Income: ₹{bankTotals.income.toFixed(2)}
@@ -1056,11 +1163,14 @@ export default function CashbookPage() {
 
             <div className="surface-card-soft p-6">
               <h3 className="text-lg font-bold text-green-800 mb-4">
-                Cash Summary
+                Cash Summary{" "}
+                {selectedMonth === "all"
+                  ? ""
+                  : `(${monthLabel(selectedMonth)})`}
               </h3>
               <div className="space-y-2 text-sm">
                 <p className="text-gray-800">
-                  Opening: ₹{cashOpeningBalance.toFixed(2)}
+                  Opening: ₹{getOpeningBalancesForMonth.cash.toFixed(2)}
                 </p>
                 <p className="text-gray-800">
                   Income: ₹{cashTotals.income.toFixed(2)}
@@ -1104,13 +1214,21 @@ export default function CashbookPage() {
               onClick={handleDownloadPDF}
               className="btn-primary px-6 py-2.5 text-white rounded-lg font-semibold text-sm"
             >
-              📄 Download PDF
+              📄 Download PDF (
+              {selectedMonth === "all"
+                ? "All Months"
+                : monthLabel(selectedMonth)}
+              )
             </button>
             <button
               onClick={handleDownloadXLSX}
               className="btn-success px-6 py-2.5 text-white rounded-lg font-semibold text-sm"
             >
-              📊 Download XLSX
+              📊 Download XLSX (
+              {selectedMonth === "all"
+                ? "All Months"
+                : monthLabel(selectedMonth)}
+              )
             </button>
             <button
               onClick={() =>

@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { HeaderActions } from "@/components/HeaderActions";
+import { SearchableSelect } from "@/components/SearchableSelect";
 import ExcelJS, { Alignment } from "exceljs";
 import { formatDate } from "@/lib/dateFormat";
 import { saveAs } from "file-saver";
@@ -50,6 +51,14 @@ interface PersonOpeningBalance {
   personName: string;
   openingBalance: number;
 }
+
+const transactionHeadOptions = (
+  heads: Array<{ head: string; type: "income" | "expense" }>,
+) =>
+  heads.map((headData) => ({
+    value: headData.head,
+    label: `${headData.head} (${headData.type === "income" ? "Income" : "Expense"})`,
+  }));
 
 export default function LedgerPage() {
   const params = useParams();
@@ -731,25 +740,17 @@ export default function LedgerPage() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Transaction Head (Income/Expense Type)
                 </label>
-                <select
+                <SearchableSelect
                   value={selectedTransactionHead}
-                  onChange={(e) => {
-                    setSelectedTransactionHead(e.target.value);
-                    setSelectedPerson(""); // Clear person selection when selecting head
+                  onChange={(value) => {
+                    setSelectedTransactionHead(value);
+                    setSelectedPerson("");
                   }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">-- Select transaction head --</option>
-                  {getUniqueTransactionHeads().map((headData) => (
-                    <option
-                      key={`${headData.type}-${headData.head}`}
-                      value={headData.head}
-                    >
-                      {headData.head} (
-                      {headData.type === "income" ? "Income" : "Expense"})
-                    </option>
-                  ))}
-                </select>
+                  options={transactionHeadOptions(getUniqueTransactionHeads())}
+                  placeholder="-- Select transaction head --"
+                  searchPlaceholder="Search transaction heads..."
+                  emptyText="No transaction heads found"
+                />
               </div>
 
               {/* OR Divider */}
@@ -766,21 +767,20 @@ export default function LedgerPage() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Person
                 </label>
-                <select
+                <SearchableSelect
                   value={selectedPerson}
-                  onChange={(e) => {
-                    setSelectedPerson(e.target.value);
-                    setSelectedTransactionHead(""); // Clear transaction head when selecting person
+                  onChange={(value) => {
+                    setSelectedPerson(value);
+                    setSelectedTransactionHead("");
                   }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">-- Select a person --</option>
-                  {uniquePersons.map((person) => (
-                    <option key={person.id} value={person.name}>
-                      {person.name}
-                    </option>
-                  ))}
-                </select>
+                  options={uniquePersons.map((person) => ({
+                    value: person.name,
+                    label: person.name,
+                  }))}
+                  placeholder="-- Select a person --"
+                  searchPlaceholder="Search people..."
+                  emptyText="No people found"
+                />
               </div>
 
               <button
