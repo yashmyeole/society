@@ -151,6 +151,7 @@ export default function TransactionsPage() {
   // Monthly view state
   const [selectedMonth, setSelectedMonth] = useState<string | "all">("all");
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+  const [monthInitialized, setMonthInitialized] = useState(false);
 
   // Edit/Delete Transaction State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -192,14 +193,11 @@ export default function TransactionsPage() {
     });
     const months = Array.from(monthsSet).sort((a, b) => b.localeCompare(a));
     setAvailableMonths(months);
-    if (
-      selectedMonth !== "all" &&
-      months.length > 0 &&
-      !months.includes(selectedMonth)
-    ) {
+    if (!monthInitialized && months.length > 0) {
       setSelectedMonth(months[0]);
+      setMonthInitialized(true);
     }
-  }, [transactions]);
+  }, [transactions, monthInitialized]);
 
   const monthLabel = (m: string) => {
     if (m === "all") return "All";
@@ -621,10 +619,10 @@ export default function TransactionsPage() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-240px)]">
               {/* Income Section */}
-              <div>
-                <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+              <div className="flex flex-col min-h-0">
+                <div className="flex flex-wrap justify-between items-center gap-3 mb-4 shrink-0">
                   <div className="flex items-center gap-3">
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                       Income
@@ -656,7 +654,7 @@ export default function TransactionsPage() {
                   </button>
                 </div>
 
-                <div className="kpi-card p-4 mb-4">
+                <div className="kpi-card p-4 mb-4 shrink-0">
                   <p className="text-gray-600">Total Income</p>
                   <p className="text-3xl font-bold text-green-600">
                     ₹
@@ -670,7 +668,7 @@ export default function TransactionsPage() {
                   </p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 overflow-y-auto grow pr-2">
                   {filterByMonth(incomeTransactions).length === 0 ? (
                     <div className="text-center py-8 surface-card">
                       <p className="text-gray-500">
@@ -721,37 +719,12 @@ export default function TransactionsPage() {
                       </div>
                     ))
                   )}
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Member{" "}
-                      {incomeForm.incomeType === "Member Contribution" ||
-                      incomeForm.incomeType === "Transfer Fee"
-                        ? "*"
-                        : "(Optional)"}
-                    </label>
-                    <SearchableSelect
-                      value={incomeForm.memberId}
-                      onChange={(value) =>
-                        setIncomeForm({ ...incomeForm, memberId: value })
-                      }
-                      options={members.map((member) => ({
-                        value: member.id,
-                        label: member.flatNumber
-                          ? `${member.name} - ${member.flatNumber}`
-                          : member.name,
-                      }))}
-                      placeholder="Select a member"
-                      searchPlaceholder="Search members..."
-                      emptyText="No members found"
-                    />
-                  </div>
                 </div>
               </div>
 
               {/* Expense Section */}
-              <div>
-                <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+              <div className="flex flex-col min-h-0">
+                <div className="flex flex-wrap justify-between items-center gap-3 mb-4 shrink-0">
                   <h2 className="text-2xl font-bold text-gray-900">
                     Expenditure
                   </h2>
@@ -763,7 +736,7 @@ export default function TransactionsPage() {
                   </button>
                 </div>
 
-                <div className="kpi-card p-4 mb-4">
+                <div className="kpi-card p-4 mb-4 shrink-0">
                   <p className="text-gray-600">Total Expenditure</p>
                   <p className="text-3xl font-bold text-red-600">
                     ₹
@@ -773,7 +746,7 @@ export default function TransactionsPage() {
                   </p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 overflow-y-auto grow pr-2">
                   {filterByMonth(expenseTransactions).length === 0 ? (
                     <div className="text-center py-8 surface-card">
                       <p className="text-gray-500">

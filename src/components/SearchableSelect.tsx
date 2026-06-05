@@ -110,7 +110,7 @@ export function SearchableSelect({
 
     setQuery("");
     window.requestAnimationFrame(() => {
-      searchRef.current?.focus();
+      searchRef.current?.focus({ preventScroll: true });
     });
   }, [isOpen]);
 
