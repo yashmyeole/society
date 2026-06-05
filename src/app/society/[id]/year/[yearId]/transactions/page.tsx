@@ -51,29 +51,46 @@ interface Society {
 }
 
 const incomeTypeOptions = [
-  { value: "Member Contribution", label: "Member Contribution" },
+  { value: "Member Contribution A/C", label: "Member Contribution A/C" },
+  { value: "Bank Interest", label: "Bank Interest" },
+  { value: "Transfer Fee", label: "Transfer Fee" },
+  { value: "Entrance Fee", label: "Entrance Fee" },
+  { value: "Donation", label: "Donation" },
+  { value: "Dividend", label: "Dividend" },
+  { value: "Other Income", label: "Other Income" },
+  { value: "F.D.R. Interest", label: "F.D.R. Interest" },
+  { value: "F.D. Closed", label: "F.D. Closed" },
+  { value: "Scrap Sale", label: "Scrap Sale" },
+  { value: "Advance A/C", label: "Advance A/C" },
   {
     value: "Conveyance Deed Contribution",
     label: "Conveyance Deed Contribution",
   },
-  { value: "Bank Interest", label: "Bank Interest" },
-  { value: "Transfer Fee", label: "Transfer Fee" },
-  { value: "Entrance Fee", label: "Entrance Fee" },
-  { value: "Other Income", label: "Other Income" },
 ];
 
 const expenseTypeOptions = [
   { value: "Repair & Maintenance", label: "Repair & Maintenance" },
+  { value: "Salary", label: "Salary" },
   { value: "Sweeper Salary", label: "Sweeper Salary" },
   { value: "Security Guard Salary", label: "Security Guard Salary" },
   { value: "Pump Operator Salary", label: "Pump Operator Salary" },
   { value: "Electric Bill", label: "Electric Bill" },
   { value: "Water Bill", label: "Water Bill" },
-  { value: "Property Tax", label: "Property Tax" },
-  { value: "Bank Charges", label: "Bank Charges" },
+  { value: "Printing & Stationary", label: "Printing & Stationary" },
   { value: "Miscellaneous Expenses", label: "Miscellaneous Expenses" },
-  { value: "Other Expenses", label: "Other Expenses" },
   { value: "Conveyance", label: "Conveyance" },
+  { value: "Subscription", label: "Subscription" },
+  { value: "Bank Charges", label: "Bank Charges" },
+  { value: "A.G.M. Expenses", label: "A.G.M. Expenses" },
+  { value: "Audit Fee & A/C Fee", label: "Audit Fee & A/C Fee" },
+  { value: "Electric Deposit", label: "Electric Deposit" },
+  { value: "Donation", label: "Donation" },
+  { value: "N.A.Tax", label: "N.A.Tax" },
+  { value: "Fixed Deposit", label: "Fixed Deposit" },
+  { value: "Advance Return", label: "Advance Return" },
+  { value: "Redevelopment Expenses", label: "Redevelopment Expenses" },
+  { value: "Property Tax", label: "Property Tax" },
+  { value: "Other Expenses", label: "Other Expenses" },
   { value: "Conveyance Deed Expenses", label: "Conveyance Deed Expenses" },
 ];
 
@@ -111,7 +128,7 @@ export default function TransactionsPage() {
   const [incomeForm, setIncomeForm] = useState({
     date: "",
     receiptNumber: "",
-    incomeType: "Member Contribution",
+    incomeType: "Member Contribution A/C",
     memberId: "",
     type: "credit",
     paymentMethod: "cash",
@@ -266,20 +283,43 @@ export default function TransactionsPage() {
     }
   };
 
+  const validateIncomeForm = () => {
+    const missingFields: string[] = [];
+
+    if (!incomeForm.date) missingFields.push("Date of Transaction");
+    if (!incomeForm.receiptNumber) missingFields.push("Receipt Number");
+    if (!incomeForm.incomeType) missingFields.push("Income Type");
+    if (!incomeForm.paymentMethod) missingFields.push("Payment Method");
+    if (!incomeForm.amount) missingFields.push("Amount");
+    if (incomeForm.paymentMethod === "cheque" && !incomeForm.chequeNumber) {
+      missingFields.push("Cheque Number");
+    }
+
+    if (missingFields.length > 0) {
+      alert(
+        `Please fill in the following required field${
+          missingFields.length > 1 ? "s" : ""
+        }: ${missingFields.join(", ")}`,
+      );
+      return false;
+    }
+
+    return true;
+  };
+
   const handleAddIncome = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !societyId || !yearId) return;
+    if (!validateIncomeForm()) return;
 
-    // Only require member if income type is "Member Contribution" or "Transfer Fee"
+    // Only require member if income type is "Member Contribution A/C" or "Transfer Fee"
     if (
-      incomeForm.incomeType === "Member Contribution" ||
+      incomeForm.incomeType === "Member Contribution A/C" ||
       incomeForm.incomeType === "Transfer Fee"
     ) {
       const selectedMember = members.find((m) => m.id === incomeForm.memberId);
       if (!selectedMember) {
-        alert(
-          `Please select a member for ${incomeForm.incomeType}`,
-        );
+        alert(`Please select a member for ${incomeForm.incomeType}`);
         return;
       }
     }
@@ -350,9 +390,33 @@ export default function TransactionsPage() {
     }
   };
 
+  const validateExpenseForm = () => {
+    const missingFields: string[] = [];
+
+    if (!expenseForm.date) missingFields.push("Date of Transaction");
+    if (!expenseForm.expenseType) missingFields.push("Expense Type");
+    if (!expenseForm.paymentMethod) missingFields.push("Payment Method");
+    if (!expenseForm.amount) missingFields.push("Amount");
+    if (expenseForm.paymentMethod === "cheque" && !expenseForm.chequeNumber) {
+      missingFields.push("Cheque Number");
+    }
+
+    if (missingFields.length > 0) {
+      alert(
+        `Please fill in the following required field${
+          missingFields.length > 1 ? "s" : ""
+        }: ${missingFields.join(", ")}`,
+      );
+      return false;
+    }
+
+    return true;
+  };
+
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !societyId || !yearId) return;
+    if (!validateExpenseForm()) return;
 
     setSubmitting(true);
     try {
