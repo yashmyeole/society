@@ -420,7 +420,7 @@ export default function CashbookPage() {
     */
 
       const addEmptyBorderRow = (sheet: ExcelJS.Worksheet) => {
-        const row = sheet.addRow(["", "", "", "", "", ""]);
+        const row = sheet.addRow(["", "", "", "", "", "", ""]);
         row.eachCell((cell) => {
           cell.border = verticalBorder;
         });
@@ -473,6 +473,7 @@ export default function CashbookPage() {
         const headerRow = sheet.addRow([
           "Date",
           "Receipt No",
+          "Cheque No",
           "Details",
           "Debit (₹)",
           "Credit (₹)",
@@ -494,14 +495,15 @@ export default function CashbookPage() {
         const openRow = sheet.addRow([
           "",
           "",
+          "",
           `${name.includes("Bank") ? "Bank" : "Cash"} Opening Balance`,
           "",
           "",
           openingBalance,
         ]);
 
-        openRow.getCell(3).font = { bold: true };
-        openRow.getCell(6).numFmt = "0.00";
+        openRow.getCell(4).font = { bold: true };
+        openRow.getCell(7).numFmt = "0.00";
         openRow.eachCell((c) => (c.border = verticalBorder));
 
         addEmptyBorderRow(sheet);
@@ -523,15 +525,16 @@ export default function CashbookPage() {
           const row = sheet.addRow([
             formatDate(t.date),
             t.receiptNumber || "",
+            t.chequeNumber || "",
             details,
             t.transactionType === "expense" ? t.amount : "",
             t.transactionType === "income" ? t.amount : "",
             balance,
           ]);
 
-          row.getCell(4).numFmt = "0.00";
           row.getCell(5).numFmt = "0.00";
           row.getCell(6).numFmt = "0.00";
+          row.getCell(7).numFmt = "0.00";
 
           row.eachCell((c) => (c.border = verticalBorder));
         });
@@ -545,15 +548,16 @@ export default function CashbookPage() {
         const totalRow = sheet.addRow([
           "",
           "",
+          "",
           "Total",
           totals.expense,
           totals.income,
           "",
         ]);
 
-        totalRow.getCell(3).font = { bold: true };
-        totalRow.getCell(4).numFmt = "0.00";
+        totalRow.getCell(4).font = { bold: true };
         totalRow.getCell(5).numFmt = "0.00";
+        totalRow.getCell(6).numFmt = "0.00";
 
         totalRow.eachCell((c) => (c.border = totalBorder));
 
@@ -564,14 +568,15 @@ export default function CashbookPage() {
         const closingRow = sheet.addRow([
           "",
           "",
+          "",
           `${name.includes("Bank") ? "Bank" : "Cash"} Closing Balance`,
           "",
           "",
           closingBalance,
         ]);
 
-        closingRow.getCell(3).font = { bold: true };
-        closingRow.getCell(6).numFmt = "0.00";
+        closingRow.getCell(4).font = { bold: true };
+        closingRow.getCell(7).numFmt = "0.00";
 
         closingRow.eachCell((c) => (c.border = closingBorder));
       };
@@ -916,6 +921,9 @@ export default function CashbookPage() {
                         Receipt No
                       </th>
                       <th className="border border-gray-300 px-4 py-2 text-left font-bold text-gray-800">
+                        Cheque No
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-left font-bold text-gray-800">
                         Details
                       </th>
                       <th className="border border-gray-300 px-4 py-2 text-right font-bold text-gray-800">
@@ -932,7 +940,7 @@ export default function CashbookPage() {
                   <tbody>
                     <tr className="bg-blue-50">
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="border border-gray-300 px-4 py-2 font-bold text-gray-800"
                       >
                         Opening Balance
@@ -960,6 +968,9 @@ export default function CashbookPage() {
                             {trans.receiptNumber || "-"}
                           </td>
                           <td className="border border-gray-300 px-4 py-2 text-gray-800">
+                            {trans.chequeNumber || "-"}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-gray-800">
                             {trans.transactionType === "income"
                               ? trans.memberName
                               : trans.reason}
@@ -984,7 +995,7 @@ export default function CashbookPage() {
                       <>
                         <tr className="bg-gray-100 font-bold">
                           <td
-                            colSpan={3}
+                            colSpan={4}
                             className="border border-gray-300 px-4 py-2 text-gray-800"
                           >
                             Total
@@ -1003,7 +1014,7 @@ export default function CashbookPage() {
                     )}
                     <tr className="bg-blue-50 font-bold">
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="border border-gray-300 px-4 py-2 text-gray-800"
                       >
                         Closing Balance
@@ -1034,6 +1045,9 @@ export default function CashbookPage() {
                         Receipt No
                       </th>
                       <th className="border border-gray-300 px-4 py-2 text-left font-bold text-gray-800">
+                        Cheque No
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 text-left font-bold text-gray-800">
                         Details
                       </th>
                       <th className="border border-gray-300 px-4 py-2 text-right font-bold text-gray-800">
@@ -1050,7 +1064,7 @@ export default function CashbookPage() {
                   <tbody>
                     <tr className="bg-green-50">
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="border border-gray-300 px-4 py-2 font-bold text-gray-800"
                       >
                         Opening Balance
@@ -1078,6 +1092,9 @@ export default function CashbookPage() {
                             {trans.receiptNumber || "-"}
                           </td>
                           <td className="border border-gray-300 px-4 py-2 text-gray-800">
+                            {trans.chequeNumber || "-"}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-gray-800">
                             {trans.transactionType === "income"
                               ? trans.memberName
                               : trans.reason}
@@ -1102,7 +1119,7 @@ export default function CashbookPage() {
                       <>
                         <tr className="bg-gray-100 font-bold">
                           <td
-                            colSpan={3}
+                            colSpan={4}
                             className="border border-gray-300 px-4 py-2 text-gray-800"
                           >
                             Total
@@ -1121,7 +1138,7 @@ export default function CashbookPage() {
                     )}
                     <tr className="bg-green-50 font-bold">
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="border border-gray-300 px-4 py-2 text-gray-800"
                       >
                         Closing Balance

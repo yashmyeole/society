@@ -66,6 +66,7 @@ const incomeTypeOptions = [
     value: "Conveyance Deed Contribution",
     label: "Conveyance Deed Contribution",
   },
+  { value: "Contra", label: "Contra" },
 ];
 
 const expenseTypeOptions = [
@@ -92,6 +93,7 @@ const expenseTypeOptions = [
   { value: "Property Tax", label: "Property Tax" },
   { value: "Other Expenses", label: "Other Expenses" },
   { value: "Conveyance Deed Expenses", label: "Conveyance Deed Expenses" },
+  { value: "Contra", label: "Contra" },
 ];
 
 const paymentMethodOptions = [
