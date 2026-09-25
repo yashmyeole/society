@@ -71,6 +71,8 @@ const incomeTypeOptions = [
 
 const expenseTypeOptions = [
   { value: "Repair & Maintenance", label: "Repair & Maintenance" },
+  { value: "Lift Maintenance", label: "Lift Maintenance" },
+  { value: "CCTV & Camera", label: "CCTV & Camera" },
   { value: "Salary", label: "Salary" },
   { value: "Sweeper Salary", label: "Sweeper Salary" },
   { value: "Security Guard Salary", label: "Security Guard Salary" },
